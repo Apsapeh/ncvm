@@ -1,11 +1,20 @@
+-- package("extc")
+--     set_urls("https://github.com/Apsapeh/extc.git")
+--     on_install(function (package)
+--         import("package.tools.xmake").install(package)
+--     end)
+
+--set_project("ncvm")
+
+
 function set_mode_rules()
     if is_mode("debug") then
         set_symbols("debug")
         set_optimize("none")
     elseif is_mode("release") then
         set_symbols("hidden")
-        set_fpmodels("fast")
-        set_optimize("aggressive")
+        --set_fpmodels("fast")
+        set_optimize("fastest")
         set_strip("all")
     end
 end
@@ -13,21 +22,35 @@ end
 
 add_rules("mode.debug", "mode.release")
 
-target("ncvm")
+add_repositories("apsapeh-repo https://github.com/Apsapeh/xmake-repo.git")
+
+add_requires("extc")
+
+
+target("ncvm-static")
+add_packages("extc")
+    set_languages("c89")
     set_kind("static")
     add_includedirs("include")
     add_files("src/ncvm.c")
+    set_mode_rules()
+
+target("ncvm")
+add_packages("extc")
+    add_cxxflags("-fPIC", {target = {"clang", "clang++", "gcc", "g++"}})
+    add_defines("__NCVM_DYN_LIB_EXPORT")
+    set_kind("shared")
+    add_includedirs("include")
+    add_files("src/ncvm.c")
+    set_mode_rules()
+
 
 target("ncvm-cpp-example")
     set_kind("binary")
-    add_deps("ncvm")
+    add_deps("ncvm-static")
     add_includedirs("include")
     add_files("examples/main.cpp")
-    --set_mode_rules()
-    set_symbols("hidden")
-    set_fpmodels("fast")
-    set_optimize("aggressive")
-    set_strip("all")
+    set_mode_rules()
 
 
 --
