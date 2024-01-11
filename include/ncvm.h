@@ -16,18 +16,24 @@
     #define _export
 #endif
 
+
 enum _packed OPCODE {
-    //==>  Stack  <==//
+    /*==>  Other  <==*/
+    NOP,
+    STOP,
+    RET,
+
+    /*==>  Stack  <==*/
     PUSH,
     POP,
 
-    //==>  Heap  <==//
+    /*==>  Heap  <==*/
     ALLOC,
     FREE,
     LOAD,
     SET,
 
-    //==>  Math  <==//
+    /*==>  Math  <==*/
     ADD,
     SUB,
     MULT,
@@ -36,13 +42,13 @@ enum _packed OPCODE {
     INC,
     DEC,
 
-    //==>  Logic  <==//
+    /*==>  Logic  <==*/
 
 
-    //==>  Jump  <==//
+    /*==>  Jump  <==*/
     JMP,
 
-    //==>  Lib  <==//
+    /*==>  Lib  <==*/
     L_CALL
 };
 
@@ -57,25 +63,37 @@ enum _packed REGISTER {
     R7
 };
 
-typedef struct Instruction{
+typedef struct {
     enum OPCODE opcode;
-}  Instruction;
+} Instruction;
+
+typedef struct {
+    Instruction* inst_p;
+    long         inst_count;
+} ncvm;
 
 
 
-// ======================> Functions (C and CPP) <======================
+/* ======================> Functions (C and CPP) <====================== */
 
-// For cpp support
+/* For cpp support */
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+_export ncvm ncvm_initArr(Instruction* inst_p, long inst_count);
+_export ncvm ncvm_initData(const char* data_p, long data_size);
+_export ncvm ncvm_initFile(const char* filename);
+_export void ncvm_free(ncvm* vm);
+
+_export int ncvm_execute(ncvm* vm);
 
 
 _export int factorial(int n);
 _export int* get_size();
 
 
-// For cpp support
+/* For cpp support */
 #ifdef __cplusplus
 }
 #endif

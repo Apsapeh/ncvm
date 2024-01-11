@@ -10,25 +10,25 @@ project(ncvm LANGUAGES C CXX)
 # target
 add_library(ncvm SHARED "")
 set_target_properties(ncvm PROPERTIES OUTPUT_NAME "ncvm")
-set_target_properties(ncvm PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/build/macosx/arm64/release")
+set_target_properties(ncvm PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/build/linux/i386/release")
 target_include_directories(ncvm PRIVATE
     include
 )
 target_include_directories(ncvm SYSTEM PRIVATE
-    /Users/ghost/.xmake/packages/e/extc/@default/a5b4e345986a4740863d88955955c4b5/include
+    /home/ghost/.xmake/packages/e/extc/@default/ce0dc86df8164021806ff8f7089d92ed/include
 )
 target_compile_definitions(ncvm PRIVATE
     __NCVM_DYN_LIB_EXPORT
 )
 target_compile_options(ncvm PRIVATE
-    $<$<COMPILE_LANGUAGE:C>:-isysroot>
-    $<$<COMPILE_LANGUAGE:CXX>:-isysroot>
-    $<$<COMPILE_LANGUAGE:C>:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk>
-    $<$<COMPILE_LANGUAGE:CXX>:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk>
+    $<$<COMPILE_LANGUAGE:C>:-m32>
+    $<$<COMPILE_LANGUAGE:CXX>:-m32>
     $<$<COMPILE_LANGUAGE:C>:-DNDEBUG>
     $<$<COMPILE_LANGUAGE:CXX>:-DNDEBUG>
     $<$<COMPILE_LANGUAGE:CXX>:-fPIC>
 )
+set_target_properties(ncvm PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_features(ncvm PRIVATE c_std_90)
 if(MSVC)
     target_compile_options(ncvm PRIVATE $<$<CONFIG:Release>:-Ox -fp:fast>)
 else()
@@ -46,13 +46,10 @@ target_link_libraries(ncvm PRIVATE
     extc-static
 )
 target_link_directories(ncvm PRIVATE
-    /Users/ghost/.xmake/packages/e/extc/@default/a5b4e345986a4740863d88955955c4b5/lib
+    /home/ghost/.xmake/packages/e/extc/@default/ce0dc86df8164021806ff8f7089d92ed/lib
 )
 target_link_options(ncvm PRIVATE
-    -isysroot
-    /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
-    -stdlib=libc++
-    -lz
+    -m32
 )
 target_sources(ncvm PRIVATE
     src/ncvm.c
@@ -61,23 +58,21 @@ target_sources(ncvm PRIVATE
 # target
 add_executable(ncvm-cpp-example "")
 set_target_properties(ncvm-cpp-example PROPERTIES OUTPUT_NAME "ncvm-cpp-example")
-set_target_properties(ncvm-cpp-example PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/build/macosx/arm64/release")
+set_target_properties(ncvm-cpp-example PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/build/linux/i386/release")
 add_dependencies(ncvm-cpp-example ncvm-static)
 target_include_directories(ncvm-cpp-example PRIVATE
     include
 )
 target_compile_options(ncvm-cpp-example PRIVATE
-    $<$<COMPILE_LANGUAGE:C>:-isysroot>
-    $<$<COMPILE_LANGUAGE:CXX>:-isysroot>
-    $<$<COMPILE_LANGUAGE:C>:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk>
-    $<$<COMPILE_LANGUAGE:CXX>:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk>
+    $<$<COMPILE_LANGUAGE:C>:-m32>
+    $<$<COMPILE_LANGUAGE:CXX>:-m32>
     $<$<COMPILE_LANGUAGE:C>:-DNDEBUG>
     $<$<COMPILE_LANGUAGE:CXX>:-DNDEBUG>
 )
 if(MSVC)
     target_compile_options(ncvm-cpp-example PRIVATE $<$<CONFIG:Release>:-Ox -fp:fast>)
 else()
-    target_compile_options(ncvm-cpp-example PRIVATE -Ofast)
+    target_compile_options(ncvm-cpp-example PRIVATE -O3)
 endif()
 if(MSVC)
 else()
@@ -92,14 +87,11 @@ target_link_libraries(ncvm-cpp-example PRIVATE
     extc-static
 )
 target_link_directories(ncvm-cpp-example PRIVATE
-    build/macosx/arm64/release
-    /Users/ghost/.xmake/packages/e/extc/@default/a5b4e345986a4740863d88955955c4b5/lib
+    build/linux/i386/release
+    /home/ghost/.xmake/packages/e/extc/@default/ce0dc86df8164021806ff8f7089d92ed/lib
 )
 target_link_options(ncvm-cpp-example PRIVATE
-    -isysroot
-    /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
-    -stdlib=libc++
-    -lz
+    -m32
 )
 target_sources(ncvm-cpp-example PRIVATE
     examples/main.cpp
@@ -108,18 +100,16 @@ target_sources(ncvm-cpp-example PRIVATE
 # target
 add_library(ncvm-static STATIC "")
 set_target_properties(ncvm-static PROPERTIES OUTPUT_NAME "ncvm-static")
-set_target_properties(ncvm-static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/build/macosx/arm64/release")
+set_target_properties(ncvm-static PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/build/linux/i386/release")
 target_include_directories(ncvm-static PRIVATE
     include
 )
 target_include_directories(ncvm-static SYSTEM PRIVATE
-    /Users/ghost/.xmake/packages/e/extc/@default/a5b4e345986a4740863d88955955c4b5/include
+    /home/ghost/.xmake/packages/e/extc/@default/ce0dc86df8164021806ff8f7089d92ed/include
 )
 target_compile_options(ncvm-static PRIVATE
-    $<$<COMPILE_LANGUAGE:C>:-isysroot>
-    $<$<COMPILE_LANGUAGE:CXX>:-isysroot>
-    $<$<COMPILE_LANGUAGE:C>:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk>
-    $<$<COMPILE_LANGUAGE:CXX>:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk>
+    $<$<COMPILE_LANGUAGE:C>:-m32>
+    $<$<COMPILE_LANGUAGE:CXX>:-m32>
     $<$<COMPILE_LANGUAGE:C>:-DNDEBUG>
     $<$<COMPILE_LANGUAGE:CXX>:-DNDEBUG>
 )
@@ -142,13 +132,10 @@ target_link_libraries(ncvm-static PRIVATE
     extc-static
 )
 target_link_directories(ncvm-static PRIVATE
-    /Users/ghost/.xmake/packages/e/extc/@default/a5b4e345986a4740863d88955955c4b5/lib
+    /home/ghost/.xmake/packages/e/extc/@default/ce0dc86df8164021806ff8f7089d92ed/lib
 )
 target_link_options(ncvm-static PRIVATE
-    -isysroot
-    /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
-    -stdlib=libc++
-    -lz
+    -m32
 )
 target_sources(ncvm-static PRIVATE
     src/ncvm.c

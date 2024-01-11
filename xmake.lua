@@ -28,7 +28,7 @@ add_requires("extc")
 
 
 target("ncvm-static")
-add_packages("extc")
+    add_packages("extc")
     set_languages("c89")
     set_kind("static")
     add_includedirs("include")
@@ -36,7 +36,8 @@ add_packages("extc")
     set_mode_rules()
 
 target("ncvm")
-add_packages("extc")
+    add_packages("extc")
+    set_languages("c89")
     add_cxxflags("-fPIC", {target = {"clang", "clang++", "gcc", "g++"}})
     add_defines("__NCVM_DYN_LIB_EXPORT")
     set_kind("shared")
