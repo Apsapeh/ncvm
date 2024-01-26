@@ -15,7 +15,7 @@ add_rules("mode.debug", "mode.release")
 
 add_repositories("apsapeh-repo https://github.com/Apsapeh/xmake-repo.git")
 
-add_requires("extc")
+add_requires("extc 7730eade8592b30ca0c90670b06dc774dc0bd7f3")
 
 
 target("ncvm-static")
