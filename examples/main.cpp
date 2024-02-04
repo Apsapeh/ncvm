@@ -21,6 +21,7 @@ int main() {
         {SMLD, 2, 10, 1},
         {LTOD, 1, 2},
         {DDIV, 0, 0, 1},
+        {DMULT, 0, 0, 0},
         {STOP, 0, 0, 0}
     };
 

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <extc_stack.h>
-#include <stdio.h>
+/*#include <stdio.h>*/
 
 
 stack_template_def(byte, u8)
@@ -35,12 +35,12 @@ _export void ncvm_free(ncvm* vm) {
 
 
 _export u8 ncvm_execute(ncvm* vm) {
-    //Создаём основное ядро
+    /* Создаём основное ядро */
     return ncvm_create_thread(vm, vm->inst_p, NULL);
 }
 
 _export u8 ncvm_create_thread(ncvm* vm, Instruction* si_p, u8* EST) {
-    // Создаём стек, регистры
+    /* Создаём стек, регистры */
     u8 st_r;
     stack_byte stack = stack_byte_init(1024*1024*1, &st_r);
     if (st_r != 0)
@@ -56,7 +56,7 @@ _export u8 ncvm_create_thread(ncvm* vm, Instruction* si_p, u8* EST) {
     while (true) {
         switch (IP->opcode) {
             case STOP:
-                // TODO: add regisetr
+                /* TODO: add regisetr */
                 goto while_exit;
                 break;
             case RET:
@@ -203,10 +203,10 @@ _export u8 ncvm_create_thread(ncvm* vm, Instruction* si_p, u8* EST) {
         ++IP;
     }
     while_exit:;
-    printf("I: %d\n", u32_registers[0]);
+    /*printf("I: %d\n", u32_registers[0]);
     printf("L: %lld\n", u64_registers[0]);    
     printf("F: %f\n", f32_registers[0]);
-    printf("D: %lf\n", f64_registers[0]);
+    printf("D: %lf\n", f64_registers[0]);*/
 
 
     stack_byte_free(&stack);

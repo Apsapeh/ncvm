@@ -139,7 +139,7 @@ typedef struct {
     Instruction*   inst_p;
     unsigned long  inst_count;
     unsigned char* static_mem_p;
-    unsigned long  static_mem_size; // Size in bytes
+    unsigned long  static_mem_size; /* Size in bytes */
 } ncvm;
 
 
