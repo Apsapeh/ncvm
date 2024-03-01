@@ -5,7 +5,9 @@ build/
 # MacOS Cache
 .DS_Store
 
-.vscode
+.vscode/
+.cache/
+.lapce/
 
 CMakeLists.txt
 compile_commands.json

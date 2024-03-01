@@ -6,7 +6,8 @@
 
 int main() {
     Instruction instructions[] = {
-        {SMLD, 1, 0, 2},
+        {.opcode=DDIV, .r1=0, .r2=0, .r3.valf=0},
+        /*{SMLD, 1, 0, 2},
         {SMLD, 2, 8, 1},
         {LADD, 1, 1, 2},
         {SMST, 6, 1, 2},
@@ -19,9 +20,9 @@ int main() {
         {LMOD, 0, 0, 1},
         {LTOD, 0, 1},
         {SMLD, 2, 10, 1},
-        {LTOD, 1, 2},
-        {DDIV, 0, 0, 1},
-        {DMULT, 0, 0, 0},
+        {LTOD, 1, 2},*/
+        {DDIV, 0, 0, 0.0},
+        {DMULT, 0, 0, 0.0},
         {STOP, 0, 0, 0}
     };
 

@@ -24,10 +24,25 @@ enum _packed OPCODE {
     RET,
 
     /*==>  Stack  <==*/
-    PUSH,
-    POP,
-    STLD,
-    STST,
+    IPUSH,
+    IPOP,
+    ISTLD,
+    ISTST,
+    
+    LPUSH,
+    LPOP,
+    LSTLD,
+    LSTST,
+    
+    FPUSH,
+    FPOP,
+    FSTLD,
+    FSTST,
+    
+    DPUSH,
+    DPOP,
+    DSTLD,
+    DSTST,
     
     /*==>  Heap  <==*/
     ALLOC,
@@ -40,13 +55,31 @@ enum _packed OPCODE {
     LMOV,    /*dst(r), in(r)*/
     FMOV,
     DMOV,
-    SRI,   /*dst(r), _, val*/
-    SRD,   /*dst(r), _, val*/
-    SMLD,   /*dst(r), in(st), val*/
-    SMST,   /*dst(st), in(r), val*/
+    
+    /*==> Static Mem Func <==*/
+    /* 32-bit int commands */    
+    ISR,     /*dst(r), _, val*/
+    ISMLD,   /*dst(r), in(st), val*/
+    ISMST,   /*dst(st), in(r), val*/
+
+    /* 64-bit int commands */        
+    LSR,     /*dst(r), _, val*/
+    LSMLD,   /*dst(r), in(st), val*/
+    LSMST,   /*dst(st), in(r), val*/
+    
+    /* 32-bit float commands */        
+    FSR,     /*dst(r), _, val*/
+    FSMLD,   /*dst(r), in(st), val*/
+    FSMST,   /*dst(st), in(r), val*/
+    
+    /* 64-bit float commands*/ 
+    DSR,     /*dst(r), _, val*/
+    DSMLD,   /*dst(r), in(st), val*/
+    DSMST,   /*dst(st), in(r), val*/   
+    
 
     /*==>  Math  <==*/
-    /* 32-bit int commands*/
+    /* 32-bit int commands */
     IADD,    /*dst(r), val(r), val(r)*/
     ISUB,    /*dst(r), val(r), val(r)*/
     IMULT,   /*dst(r), val(r), val(r)*/
@@ -55,7 +88,7 @@ enum _packed OPCODE {
     IINC,    /*dst(r)*/
     IDEC,    /*dst(r)*/
 
-    /* 64-bit int commands*/    
+    /* 64-bit int commands */    
     LADD,    /*dst(r), val(r), val(r)*/
     LSUB,    /*dst(r), val(r), val(r)*/
     LMULT,   /*dst(r), val(r), val(r)*/
@@ -64,7 +97,7 @@ enum _packed OPCODE {
     LINC,    /*dst(r)*/
     LDEC,    /*dst(r)*/
     
-    /* 32-bit float commands*/    
+    /* 32-bit float commands */    
     FADD,
     FSUB,
     FMULT,
@@ -72,7 +105,7 @@ enum _packed OPCODE {
     FINC,
     FDEC,
 
-    /* 64-bit float commands*/    
+    /* 64-bit float commands */    
     DADD,
     DSUB,
     DMULT,
@@ -80,6 +113,7 @@ enum _packed OPCODE {
     DINC,
     DDEC,
 
+    /*==> Move between u32, u64, f32, f64 registers <==*/
     FTOI,
     ITOF,
     DTOI,
@@ -92,17 +126,47 @@ enum _packed OPCODE {
     DTOF,
 
 
-
     /*==>  Jump  <==*/
     JMP,
-    JEZ,
-    JNZ,
-    JEQ,
-    JNQ,
-    JML,
-    JEL,
-    JMG,
-    JEG,
+    /* 32-bit int commands */    
+    IJEZ,
+    IJNZ,
+    IJEQ,
+    IJNQ,
+    IJML,
+    IJEL,
+    IJMG,
+    IJEG,
+    
+    /* 64-bit int commands */        
+    LJEZ,
+    LJNZ,
+    LJEQ,
+    LJNQ,
+    LJML,
+    LJEL,
+    LJMG,
+    LJEG,
+    
+    /* 32-bit float commands */        
+    FJEZ,
+    FJNZ,
+    FJEQ,
+    FJNQ,
+    FJML,
+    FJEL,
+    FJMG,
+    FJEG,
+    
+    /* 64-bit float commands */        
+    DJEZ,
+    DJNZ,
+    DJEQ,
+    DJNQ,
+    DJML,
+    DJEL,
+    DJMG,
+    DJEG,
 
     /*==>  Logic  <==*/
 
@@ -129,10 +193,10 @@ typedef struct {
     enum OPCODE opcode;
     unsigned char r1;
     unsigned char r2;
-    union {
+    union LongOrDouble{
         unsigned long long vali;
         double valf;
-    };
+    } r3;
 } Instruction;
 
 typedef struct {
@@ -163,7 +227,8 @@ _export void ncvm_free(ncvm* vm);
 */
 _export unsigned char ncvm_execute(ncvm* vm);
 _export unsigned char ncvm_create_thread(
-    ncvm* vm, Instruction* start_instr_p, unsigned char* ext_stack_p
+    ncvm* vm, Instruction* start_instr_p, 
+    unsigned char* ext_stack_p, unsigned long ext_stack_s
 );
 
 
