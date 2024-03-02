@@ -39,6 +39,7 @@ target("ncvm")
 
 target("ncvm-cpp-example")
     set_kind("binary")
+    set_languages("c++11")
     add_deps("ncvm-static")
     add_includedirs("include")
     add_files("examples/main.cpp")

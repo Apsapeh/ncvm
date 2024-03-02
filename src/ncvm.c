@@ -75,6 +75,7 @@ _export u8 ncvm_create_thread(ncvm* vm, Instruction* si_p, u8* EST, usize EST_si
             case RET:
                 break;
                 
+
             case IPUSH:
                 stack_byte_push_ptr(&stack, (u8*)&u32_registers[0], 1);
                 break;
@@ -85,6 +86,7 @@ _export u8 ncvm_create_thread(ncvm* vm, Instruction* si_p, u8* EST, usize EST_si
             case ISTST:
                 break;
                 
+
             case IMOV:
                 u32_registers[IP->r1] = u32_registers[IP->r2];
                 break;
@@ -97,6 +99,54 @@ _export u8 ncvm_create_thread(ncvm* vm, Instruction* si_p, u8* EST, usize EST_si
             case DMOV:
                 f64_registers[IP->r1] = f64_registers[IP->r2];
                 break;
+
+
+            case ISR:
+                u32_registers[IP->r1] = IP->r3.vali;
+                break;
+            case LSR:
+                u64_registers[IP->r1] = IP->r3.vali;
+                break;
+            case FSR:
+                f32_registers[IP->r1] = IP->r3.valf;
+                break;
+            case DSR:
+                f64_registers[IP->r1] = IP->r3.valf;
+                break;
+
+
+            case ISMLD:
+                u32_registers[IP->r1] = 0;
+                memcpy(&u32_registers[IP->r1], &vm->static_mem_p[IP->r2], IP->r3.vali);
+                break;
+            case ISMST:
+                memcpy(&vm->static_mem_p[IP->r1], &u32_registers[IP->r2], IP->r3.vali);
+                break;
+
+            case LSMLD:
+                u64_registers[IP->r1] = 0;
+                memcpy(&u64_registers[IP->r1], &vm->static_mem_p[IP->r2], IP->r3.vali);
+                break;
+            case LSMST:
+                memcpy(&vm->static_mem_p[IP->r1], &u64_registers[IP->r2], IP->r3.vali);
+                break;
+
+            case FSMLD:
+                f32_registers[IP->r1] = 0;
+                memcpy(&f32_registers[IP->r1], &vm->static_mem_p[IP->r2], IP->r3.vali);
+                break;
+            case FSMST:
+                memcpy(&vm->static_mem_p[IP->r1], &f32_registers[IP->r2], IP->r3.vali);
+                break;
+
+            case DSMLD:
+                f64_registers[IP->r1] = 0;
+                memcpy(&f64_registers[IP->r1], &vm->static_mem_p[IP->r2], IP->r3.vali);
+                break;
+            case DSMST:
+                memcpy(&vm->static_mem_p[IP->r1], &f64_registers[IP->r2], IP->r3.vali);
+                break;
+
             /*case SMLD:
                 u64_registers[IP->r1] = 0;
                 memcpy(&u64_registers[IP->r1], &vm->static_mem_p[IP->r2], IP->r3.vali);
@@ -105,6 +155,7 @@ _export u8 ncvm_create_thread(ncvm* vm, Instruction* si_p, u8* EST, usize EST_si
                 memcpy(&vm->static_mem_p[IP->r1], &u64_registers[IP->r2], IP->r3.vali);
                 break;*/
                 
+
             case IADD:
                 u32_registers[IP->r1] = u32_registers[IP->r2] + u32_registers[IP->r3.vali];
                 break;
@@ -126,6 +177,7 @@ _export u8 ncvm_create_thread(ncvm* vm, Instruction* si_p, u8* EST, usize EST_si
             case IDEC:
                 --u32_registers[IP->r1];
                 break;
+
 
             case LADD:
                 u64_registers[IP->r1] = u64_registers[IP->r2] + u64_registers[IP->r3.vali];
@@ -149,6 +201,7 @@ _export u8 ncvm_create_thread(ncvm* vm, Instruction* si_p, u8* EST, usize EST_si
                 --u64_registers[IP->r1];
                 break;
 
+
             case FADD:
                 f32_registers[IP->r1] = f32_registers[IP->r2] + f32_registers[IP->r3.vali];
                 break;
@@ -168,6 +221,7 @@ _export u8 ncvm_create_thread(ncvm* vm, Instruction* si_p, u8* EST, usize EST_si
                 --f32_registers[IP->r1];
                 break;
 
+
             case DADD:
                 f64_registers[IP->r1] = f64_registers[IP->r2] + f64_registers[IP->r3.vali];
                 break;
@@ -186,6 +240,7 @@ _export u8 ncvm_create_thread(ncvm* vm, Instruction* si_p, u8* EST, usize EST_si
             case DDEC:
                 --f64_registers[IP->r1];
                 break;
+
 
             case FTOI:
                 u32_registers[IP->r1] = (u32)f32_registers[IP->r2];

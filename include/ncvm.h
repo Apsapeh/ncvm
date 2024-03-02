@@ -52,30 +52,31 @@ enum _packed OPCODE {
 
     /*==> Mem Func <==*/  
     IMOV,
-    LMOV,    /*dst(r), in(r)*/
+    LMOV,    /*dst(r), from(r)*/
     FMOV,
     DMOV,
-    
+
+    ISR,     /*dst(r), _, val*/
+    LSR,     /*dst(r), _, val*/
+    FSR,     /*dst(r), _, val*/
+    DSR,     /*dst(r), _, val*/
+
     /*==> Static Mem Func <==*/
     /* 32-bit int commands */    
-    ISR,     /*dst(r), _, val*/
-    ISMLD,   /*dst(r), in(st), val*/
-    ISMST,   /*dst(st), in(r), val*/
+    ISMLD,   /*dst(r), from(st), val*/
+    ISMST,   /*dst(st), from(r), val*/
 
     /* 64-bit int commands */        
-    LSR,     /*dst(r), _, val*/
-    LSMLD,   /*dst(r), in(st), val*/
-    LSMST,   /*dst(st), in(r), val*/
+    LSMLD,   /*dst(r), from(st), val*/
+    LSMST,   /*dst(st), from(r), val*/
     
     /* 32-bit float commands */        
-    FSR,     /*dst(r), _, val*/
-    FSMLD,   /*dst(r), in(st), val*/
-    FSMST,   /*dst(st), in(r), val*/
+    FSMLD,   /*dst(r), from(st), val*/
+    FSMST,   /*dst(st), from(r), val*/
     
     /* 64-bit float commands*/ 
-    DSR,     /*dst(r), _, val*/
-    DSMLD,   /*dst(r), in(st), val*/
-    DSMST,   /*dst(st), in(r), val*/   
+    DSMLD,   /*dst(r), from(st), val*/
+    DSMST,   /*dst(st), from(r), val*/   
     
 
     /*==>  Math  <==*/
@@ -198,6 +199,9 @@ typedef struct {
         double valf;
     } r3;
 } Instruction;
+
+#define Instruction_Int(OP, R1, R2, R3) {.opcode=OP, .r1=R1, .r2=R2, .r3.vali=R3} 
+#define Instruction_Float(OP, R1, R2, R3) {.opcode=OP, .r1=R1, .r2=R2, .r3.valf=R3} 
 
 typedef struct {
     Instruction*   inst_p;
