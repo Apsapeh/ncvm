@@ -211,11 +211,11 @@ typedef struct {
 } ncvm;
 
 typedef struct {
-    long u32_reg_size;
-    long u64_reg_size;
-    long f32_reg_size;
-    long f64_reg_size;
-    long stack_size;   // In bytes
+    unsigned long u32_reg_size;
+    unsigned long u64_reg_size;
+    unsigned long f32_reg_size;
+    unsigned long f64_reg_size;
+    unsigned long stack_size;   // In bytes
 } ThreadSettings;
 
 #define DefaultThreadSettings {\
