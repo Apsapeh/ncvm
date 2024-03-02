@@ -210,6 +210,20 @@ typedef struct {
     unsigned long  static_mem_size; /* Size in bytes */
 } ncvm;
 
+typedef struct {
+    long u32_reg_size;
+    long u64_reg_size;
+    long f32_reg_size;
+    long f64_reg_size;
+    long stack_size;   // In bytes
+} ThreadSettings;
+
+#define DefaultThreadSettings {\
+    .u32_reg_size=8, .u64_reg_size=8,\
+    .f32_reg_size=8, .f64_reg_size=8,\
+    .stack_size=1024*1024*1\
+}
+
 
 
 /* ======================> Functions (C and CPP) <====================== */
@@ -229,10 +243,11 @@ _export void ncvm_free(ncvm* vm);
 /**
     @param vm VM
 */
-_export unsigned char ncvm_execute(ncvm* vm);
+_export unsigned char ncvm_execute(ncvm* vm, ThreadSettings settings);
 _export unsigned char ncvm_create_thread(
     ncvm* vm, Instruction* start_instr_p, 
-    unsigned char* ext_stack_p, unsigned long ext_stack_s
+    unsigned char* ext_stack_p, unsigned long ext_stack_s,
+    ThreadSettings settings
 );
 
 

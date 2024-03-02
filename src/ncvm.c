@@ -1,15 +1,8 @@
+#include <malloc/_malloc.h>
 #include <ncvm.h>
 #include <stdlib.h>
 #include <string.h>
 #include <extc_stack.h>
-/*#include <stdio.h>*/
-
-#define ANY_REGISTER_COUNT 8
-#define U32_REGISTER_COUNT ANY_REGISTER_COUNT
-#define U64_REGISTER_COUNT ANY_REGISTER_COUNT
-#define F32_REGISTER_COUNT ANY_REGISTER_COUNT
-#define F64_REGISTER_COUNT ANY_REGISTER_COUNT
-
 
 stack_template_def(byte, u8)
 stack_template_impl(byte, u8)
@@ -19,15 +12,10 @@ _export ncvm ncvm_initArr(
     u8* static_mem_p, usize static_mem_size
 ) {
     ncvm ret;
-   /*ret.inst_p = (Instruction*)malloc(sizeof(Instruction) * inst_count);
-    memcpy(ret.inst_p, inst_p, sizeof(Instruction) * inst_count);
-    ret.inst_count = inst_count;*/
     ret.inst_p = inst_p;
     ret.inst_count = inst_count;
     ret.static_mem_p = static_mem_p;
     ret.static_mem_size = static_mem_size;
-
-    Instruction a = {.opcode = DDIV, .r1 = 0, .r2 = 1, .r3.valf=3};
 
     return ret;
 }
@@ -39,30 +27,41 @@ _export ncvm ncvm_initData(const char* data_p, usize data_size) {
 }
 
 _export void ncvm_free(ncvm* vm) {
-    free(vm->inst_p);
+    /*free(vm->inst_p);*/
 }
 
 
-_export u8 ncvm_execute(ncvm* vm) {
+_export u8 ncvm_execute(ncvm* vm, ThreadSettings settings) {
     /* Create main thread */
-    return ncvm_create_thread(vm, vm->inst_p, NULL, 0);
+    return ncvm_create_thread(vm, vm->inst_p, NULL, 0, settings);
 }
 
-_export u8 ncvm_create_thread(ncvm* vm, Instruction* si_p, u8* EST, usize EST_size) {
+_export u8 ncvm_create_thread(
+    ncvm* vm, Instruction* si_p, u8* EST, usize EST_size,
+    ThreadSettings settings
+) {
     /* Create stack, registers */
     u8 st_r;
-    stack_byte stack = stack_byte_init(1024*1024*1, &st_r);
+    stack_byte stack = stack_byte_init(settings.stack_size, &st_r);
     if (st_r != 0)
         return 1;
         
-    // Add extern stack to thread stack
+    /* Add extern stack to thread stack */
     if (EST != NULL)
         stack_byte_push_ptr(&stack, EST, EST_size);
 
-    u32 u32_registers[U32_REGISTER_COUNT] = {0};
-    u64 u64_registers[U64_REGISTER_COUNT] = {0};
-    f32 f32_registers[F32_REGISTER_COUNT] = {0};
-    f64 f64_registers[F64_REGISTER_COUNT] = {0};
+
+    /* Alloc registers */
+    u32* u32_registers = (u32*)malloc(sizeof(u32) * settings.u32_reg_size);
+    u64* u64_registers = (u64*)malloc(sizeof(u64) * settings.u64_reg_size);
+    f32* f32_registers = (f32*)malloc(sizeof(f32) * settings.f32_reg_size);
+    f64* f64_registers = (f64*)malloc(sizeof(f64) * settings.f64_reg_size);
+
+    /* Clear registers */
+    memset(u32_registers, 0, sizeof(u32) * settings.u32_reg_size);
+    memset(u64_registers, 0, sizeof(u64) * settings.u64_reg_size);
+    memset(f32_registers, 0, sizeof(f32) * settings.f32_reg_size);
+    memset(f64_registers, 0, sizeof(f64) * settings.f64_reg_size);
 
     register Instruction* IP = si_p;
 
@@ -282,6 +281,11 @@ _export u8 ncvm_create_thread(ncvm* vm, Instruction* si_p, u8* EST, usize EST_si
     printf("L: %lld\n", u64_registers[0]);    
     printf("F: %f\n", f32_registers[0]);
     printf("D: %lf\n", f64_registers[0]);*/
+
+    free(u32_registers);
+    free(u64_registers);
+    free(f32_registers);
+    free(f64_registers);
 
 
     stack_byte_free(&stack);
