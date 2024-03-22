@@ -15,7 +15,7 @@ add_rules("mode.debug", "mode.release")
 
 add_repositories("apsapeh-repo https://github.com/Apsapeh/xmake-repo.git")
 
-add_requires("extc 1043a8129a0d36c841ff14c54fa6f3cb6374a8c7")
+add_requires("extc e1e6bc6531e9ca7cd95fc714f346139ab52089b6")
 
 
 target("ncvm-static")
@@ -37,10 +37,35 @@ target("ncvm")
     set_mode_rules()
 
 
+target("ncvm-bin")
+    add_packages("extc")
+    set_kind("binary")
+    set_languages("c89")
+    add_deps("ncvm-static")
+    add_includedirs("include")
+    add_files("bin/ncvm/*.c")
+    set_basename("ncvm")
+    set_rundir("$(projectdir)")
+    set_mode_rules()
+
+target("ncvm-asm-bin")
+    add_packages("extc")
+
+    set_kind("binary")
+    set_languages("c89")
+    add_deps("ncvm-static")
+    add_includedirs("include")
+    add_files("bin/ncvm-asm/*.c")
+    set_basename("ncvm-asm")
+    set_rundir("$(projectdir)")
+    set_mode_rules()
+
 target("ncvm-cpp-example")
+    add_packages("extc")
     set_kind("binary")
     set_languages("c++11")
     add_deps("ncvm-static")
     add_includedirs("include")
     add_files("examples/main.cpp")
+    set_rundir("$(projectdir)")
     set_mode_rules()

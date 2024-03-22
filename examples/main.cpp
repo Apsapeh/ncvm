@@ -12,7 +12,7 @@ int main() {
     };
 
     unsigned char static_memory[] = {
-        0x10, 0x15, 0x00, 0x00
+        0x10, 0x15, 0x00
     };
     
     ncvm vm = ncvm_initArr(
