@@ -8,7 +8,7 @@ typedef struct BinSettings {
 } BinSettings;
 
 int main(int argc, char* argv[]) {
-    unsigned char w_buffer[6] = {
+    /*unsigned char w_buffer[6] = {
         1, 2, 3, 4, 5, 6
     };
 
@@ -40,5 +40,5 @@ int main(int argc, char* argv[]) {
     while (!feof(bin_file) && fread(buffer, 1, 1, bin_file) == 1) {
         
         printf("%d\n", buffer[0]);
-    }
+    }*/
 }

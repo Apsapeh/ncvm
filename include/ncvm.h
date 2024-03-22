@@ -200,8 +200,8 @@ typedef struct {
     } r3;
 } Instruction;
 
-#define Instruction_Int(OP, R1, R2, R3) {.opcode=OP, .r1=R1, .r2=R2, .r3.vali=R3} 
-#define Instruction_Float(OP, R1, R2, R3) {.opcode=OP, .r1=R1, .r2=R2, .r3.valf=R3} 
+#define Instruction_Int(OP, R1, R2, R3) {OP, R1, R2, R3} 
+#define Instruction_Float(OP, R1, R2, R3) {OP, R1, R2, R3} 
 
 typedef struct {
     Instruction*   inst_p;
@@ -215,7 +215,7 @@ typedef struct {
     unsigned long u64_reg_size;
     unsigned long f32_reg_size;
     unsigned long f64_reg_size;
-    unsigned long stack_size;   // In bytes
+    unsigned long stack_size;   /* In bytes */
 } ThreadSettings;
 
 #define DefaultThreadSettings {\
