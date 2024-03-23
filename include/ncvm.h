@@ -184,10 +184,7 @@ enum _packed REGISTER {
     R4,
     R5,
     R6,
-    R7,
-    D0 = 0,
-    D1,
-    D2
+    R7
 };
 
 typedef struct {
