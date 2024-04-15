@@ -39,6 +39,7 @@ _export u8 ncvm_execute(ncvm* vm, ThreadSettings settings) {
     return ncvm_create_thread(vm, vm->inst_p, NULL, 0, settings);
 }
 
+#define JUMP_TO_ADDR IP = &vm->inst_p[*addr_register]; is_not_jump = 0;
 _export u8 ncvm_create_thread(
     ncvm* vm, Instruction* si_p, u8* EST, usize EST_size,
     ThreadSettings settings
@@ -73,8 +74,8 @@ _export u8 ncvm_create_thread(
     memset(f32_registers, 0, sizeof(f32) * settings.f32_reg_size);
     memset(f64_registers, 0, sizeof(f64) * settings.f64_reg_size);
 
+    register u8 is_not_jump = 1;
     register Instruction* IP = si_p;
-
     while (true) {
         switch (IP->opcode) {
             case STOP:
@@ -119,6 +120,32 @@ _export u8 ncvm_create_thread(
                 *((u8*)(u64_registers+IP->r1)+1) = IP->r3;
                 break;
 
+            case IRSI:
+                u32_registers[IP->r1] >>= IP->r2;
+                break;
+            case ILSI:
+                u32_registers[IP->r1] <<= IP->r2;
+                break;
+            case LRSI:
+                u64_registers[IP->r1] >>= IP->r2;
+                break;
+            case LLSI:
+                u64_registers[IP->r1] <<= IP->r2;
+                break;
+
+            case IRSA:
+                u32_registers[IP->r1] >>= *addr_register;
+                break;
+            case ILSA:
+                u32_registers[IP->r1] <<= *addr_register;
+                break;
+            case LRSA:
+                u64_registers[IP->r1] >>= *addr_register;
+                break;
+            case LLSA:
+                u64_registers[IP->r1] <<= *addr_register;
+                break;
+                
 
             case ISMLD:
                 u32_registers[IP->r1] = 0;
@@ -324,10 +351,184 @@ _export u8 ncvm_create_thread(
             case FTOD:
                 f64_registers[IP->r1] = (f64)f32_registers[IP->r2];
                 break;
+
+            
+            case JMP:
+                JUMP_TO_ADDR
+                break;
+
+            case IJEZ:
+                if (u32_registers[IP->r1] == 0) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case IJNZ:
+                if (u32_registers[IP->r1] != 0) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case IJEQ:
+                if (u32_registers[IP->r1] == u32_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case IJNQ:
+                if (u32_registers[IP->r1] != u32_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case IJML:
+                if (u32_registers[IP->r1] < u32_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case IJEL:
+                if (u32_registers[IP->r1] <= u32_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case IJMG:
+                if (u32_registers[IP->r1] > u32_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case IJEG:
+                if (u32_registers[IP->r1] >= u32_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+
+            case LJEZ:
+                if (u64_registers[IP->r1] == 0) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case LJNZ:
+                if (u64_registers[IP->r1] != 0) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case LJEQ:
+                if (u64_registers[IP->r1] == u64_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case LJNQ:
+                if (u64_registers[IP->r1] != u64_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case LJML:
+                if (u64_registers[IP->r1] < u64_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case LJEL:
+                if (u64_registers[IP->r1] <= u64_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case LJMG:
+                if (u64_registers[IP->r1] > u64_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case LJEG:
+                if (u64_registers[IP->r1] >= u64_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+
+            case FJEZ:
+                if (f32_registers[IP->r1] == 0) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case FJNZ:
+                if (f32_registers[IP->r1] != 0) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case FJEQ:
+                if (f32_registers[IP->r1] == f32_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case FJNQ:
+                if (f32_registers[IP->r1] != f32_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case FJML:
+                if (f32_registers[IP->r1] < f32_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case FJEL:
+                if (f32_registers[IP->r1] <= f32_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case FJMG:
+                if (f32_registers[IP->r1] > f32_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case FJEG:
+                if (f32_registers[IP->r1] >= f32_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+
+            case DJEZ:
+                if (f64_registers[IP->r1] == 0) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case DJNZ:
+                if (f64_registers[IP->r1] != 0) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case DJEQ:
+                if (f64_registers[IP->r1] == f64_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case DJNQ:
+                if (f64_registers[IP->r1] != f64_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case DJML:
+                if (f64_registers[IP->r1] < f64_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case DJEL:
+                if (f64_registers[IP->r1] <= f64_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case DJMG:
+                if (f64_registers[IP->r1] > f64_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+            case DJEG:
+                if (f64_registers[IP->r1] >= f64_registers[IP->r2]) {
+                    JUMP_TO_ADDR
+                }
+                break;
+
             default:
                 break;
         }
-        ++IP;
+        
+        if (is_not_jump)
+            ++IP;
+        else
+            is_not_jump = 1;
     }
     while_exit:;
     printf("I: %u\n", u32_registers[0]);

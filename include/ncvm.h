@@ -39,6 +39,16 @@ enum _packed OPCODE {
     ISR,    /*ird|0..7|8..15|Set first 16 bits to ird*/
     LSR,    /*lrd|0..7|8..15|Set first 16 bits to lrd*/
 
+    IRSI,   /*ir1|v|_|Shift ir1 on 'v' count of bits to the right*/
+    ILSI,   /*ir1|v|_|Shift ir1 on 'v' count of bits to the left*/
+    LRSI,   /*lr1|v|_|Shift lr1 on 'v' count of bits to the right*/
+    LLSI,   /*lr1|v|_|Shift lr1 on 'v' count of bits to the left*/
+
+    IRSA,   /*ir1|_|_|Shift ir1 on ar bits to the right*/
+    ILSA,   /*ir1|_|_|Shift ir1 on ar bits to the left*/
+    LRSA,   /*lr1|_|_|Shift lr1 on ar bits to the right*/
+    LLSA,   /*lr1|_|_|Shift lr1 on ar bits to the left*/
+
     /*==> Static Mem Func <==*/
     /* 32-bit int commands */    
     ISMLD,  /*ird|v|_|Load 'v' count of bytes from static memory to ird. ird = ST_MEM[ar..ar+v]*/
@@ -140,46 +150,46 @@ enum _packed OPCODE {
 
 
     /*==>  Jump  <==*/
-    JMP,    /*_|_|_|_*/
+    JMP,    /*_|_|_|jmp to ar*/
     /* 32-bit int commands */    
-    IJEZ,   /*_|_|_|_*/
-    IJNZ,   /*_|_|_|_*/
-    IJEQ,   /*_|_|_|_*/
-    IJNQ,   /*_|_|_|_*/
-    IJML,   /*_|_|_|_*/
-    IJEL,   /*_|_|_|_*/
-    IJMG,   /*_|_|_|_*/
-    IJEG,   /*_|_|_|_*/
+    IJEZ,   /*ir1|_|_|jmp to ar if ir1 == 0*/
+    IJNZ,   /*ir1|_|_|jmp to ar if ir1 != 0*/
+    IJEQ,   /*ir1|ir2|_|jmp to ar if ir1 == ir2*/
+    IJNQ,   /*ir1|ir2|_|jmp to ar if ir1 != ir2*/
+    IJML,   /*ir1|ir2|_|jmp to ar if ir1 < ir2*/
+    IJEL,   /*ir1|ir2|_|jmp to ar if ir1 <= ir2*/
+    IJMG,   /*ir1|ir2|_|jmp to ar if ir1 > ir2*/
+    IJEG,   /*ir1|ir2|_|jmp to ar if ir1 >= ir2*/
     
     /* 64-bit int commands */        
-    LJEZ,   /*_|_|_|_*/
-    LJNZ,   /*_|_|_|_*/
-    LJEQ,   /*_|_|_|_*/
-    LJNQ,   /*_|_|_|_*/
-    LJML,   /*_|_|_|_*/
-    LJEL,   /*_|_|_|_*/
-    LJMG,   /*_|_|_|_*/
-    LJEG,   /*_|_|_|_*/
+    LJEZ,   /*lr1|_|_|jmp to ar if lr1 == 0*/
+    LJNZ,   /*lr1|_|_|jmp to ar if lr1 != 0*/
+    LJEQ,   /*lr1|lr2|_|jmp to ar if lr1 == lr2*/
+    LJNQ,   /*lr1|lr2|_|jmp to ar if lr1 != lr2*/
+    LJML,   /*lr1|lr2|_|jmp to ar if lr1 < lr2*/
+    LJEL,   /*lr1|lr2|_|jmp to ar if lr1 <= lr2*/
+    LJMG,   /*lr1|lr2|_|jmp to ar if lr1 > lr2*/
+    LJEG,   /*lr1|lr2|_|jmp to ar if lr1 >= lr2*/
     
     /* 32-bit float commands */        
-    FJEZ,   /*_|_|_|_*/
-    FJNZ,   /*_|_|_|_*/
-    FJEQ,   /*_|_|_|_*/
-    FJNQ,   /*_|_|_|_*/
-    FJML,   /*_|_|_|_*/
-    FJEL,   /*_|_|_|_*/
-    FJMG,   /*_|_|_|_*/
-    FJEG,   /*_|_|_|_*/
+    FJEZ,   /*fr1|_|_|jmp to ar if fr1 == 0*/
+    FJNZ,   /*fr1|_|_|jmp to ar if fr1 != 0*/
+    FJEQ,   /*fr1|fr2|_|jmp to ar if fr1 == fr2*/
+    FJNQ,   /*fr1|fr2|_|jmp to ar if fr1 != fr2*/
+    FJML,   /*fr1|fr2|_|jmp to ar if fr1 < fr2*/
+    FJEL,   /*fr1|fr2|_|jmp to ar if fr1 <= fr2*/
+    FJMG,   /*fr1|fr2|_|jmp to ar if fr1 > fr2*/
+    FJEG,   /*fr1|fr2|_|jmp to ar if fr1 >= fr2*/
     
     /* 64-bit float commands */        
-    DJEZ,   /*_|_|_|_*/
-    DJNZ,   /*_|_|_|_*/
-    DJEQ,   /*_|_|_|_*/
-    DJNQ,   /*_|_|_|_*/
-    DJML,   /*_|_|_|_*/
-    DJEL,   /*_|_|_|_*/
-    DJMG,   /*_|_|_|_*/
-    DJEG,   /*_|_|_|_*/
+    DJEZ,   /*dr1|_|_|jmp to ar if dr1 == 0*/
+    DJNZ,   /*dr1|_|_|jmp to ar if dr1 != 0*/
+    DJEQ,   /*dr1|dr2|_|jmp to ar if dr1 == dr2*/
+    DJNQ,   /*dr1|dr2|_|jmp to ar if dr1 != dr2*/
+    DJML,   /*dr1|dr2|_|jmp to ar if dr1 < dr2*/
+    DJEL,   /*dr1|dr2|_|jmp to ar if dr1 <= dr2*/
+    DJMG,   /*dr1|dr2|_|jmp to ar if dr1 > dr2*/
+    DJEG,   /*dr1|dr2|_|jmp to ar if dr1 >= dr2*/
 
 
     /*==>  Lib  <==*/
