@@ -15,7 +15,10 @@ add_rules("mode.debug", "mode.release")
 
 add_repositories("apsapeh-repo https://github.com/Apsapeh/xmake-repo.git")
 
-add_requires("extc 18da0333c5a02ffe99eaf043c227290006383a14")
+add_requires("extc a871e9ead288ae75278972ecac57bf3ed51b8747")
+
+option("big_endian")
+option_end()
 
 
 target("ncvm-static")
@@ -23,8 +26,12 @@ target("ncvm-static")
     set_languages("c89")
     set_kind("static")
     add_includedirs("include")
-    add_files("src/ncvm.c")
+    add_files("src/*.c")
     set_mode_rules()
+
+    if has_config("big_endian") then 
+        add_defines("__NCVM_BIG_ENDIAN")
+    end
 
 target("ncvm")
     add_packages("extc")
@@ -33,8 +40,12 @@ target("ncvm")
     add_defines("__NCVM_DYN_LIB_EXPORT")
     set_kind("shared")
     add_includedirs("include")
-    add_files("src/ncvm.c")
+    add_files("src/*.c")
     set_mode_rules()
+
+    if has_config("big_endian") then 
+        add_defines("__NCVM_BIG_ENDIAN")
+    end
 
 
 target("ncvm-bin")
