@@ -20,7 +20,7 @@
 
 enum _packed OPCODE {
     /*==>  Other  <==*/
-    NOP,    /*_|_|_,_*/
+    NOP,    /*_|_|_|_*/
     STOP,   /*_|_|_|_*/
     RET,    /*_|_|_|_*/
 
