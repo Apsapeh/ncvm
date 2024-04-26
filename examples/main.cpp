@@ -1,6 +1,19 @@
 #include <iostream>
 #include <ncvm.h>
 
+#include <fstream>
+
+std::ifstream file("/Users/ghost/Desktop/Rust Projects/Projects/ncvm_asm/foo.bin", std::ios::binary);
+
+
+
+const unsigned char* get_next_n_bytes(unsigned long long n, void* data_p) {
+    unsigned char* data = new unsigned char[n];
+    file.read((char*)data, n);
+    return data;
+}
+
+
 
 int main() {
     /*Instruction instructions[] = {
@@ -33,7 +46,7 @@ int main() {
         else:
             c = 2;
     */
-    unsigned char static_memory[] = {
+    /*unsigned char static_memory[] = {
         0x00
     };
     Instruction instructions[] = {
@@ -59,7 +72,7 @@ int main() {
         Instruction_Int(ISMST, 2, 1, 0),
 
         Instruction_Int(STOP,  0, 0, 0),
-    };
+    };*/
 
     /*Instruction instructions[] = {
         //Instruction_Int(ISR, 0, 0, 1), //Set 256 to IR0
@@ -71,14 +84,63 @@ int main() {
         0x10, 0x15, 0x00
     };*/
     
-    ncvm vm = ncvm_initArr(
-        instructions, sizeof(instructions) / sizeof(Instruction),
-        static_memory, sizeof(static_memory) / sizeof(char)
+    /*ncvm vm = ncvm_initArr(
+        instructions,// sizeof(instructions) / sizeof(Instruction),
+        static_memory//, sizeof(static_memory) / sizeof(char)
     );
     
     ncvm_execute(&vm, DefaultThreadSettings);  
 
     int i = 0;
     for (auto & ch : static_memory)
-        std::cout << "[" << i++ << "] - " << (int)ch  << "\n";
+        std::cout << "[" << i++ << "] - " << (int)ch  << "\n";*/
+
+    //read byte file
+    std::ifstream file("/Users/ghost/Desktop/Rust Projects/Projects/ncvm_asm/foo.bin", std::ios::binary);
+    int ret_code = 0;
+    ncvm nc = ncvm_initStream(get_next_n_bytes, nullptr, &ret_code);
+    /*unsigned int version = 0;
+    file.read((char*)&version, sizeof(unsigned int));
+    unsigned char u32_count = 0;
+    file.read((char*)&u32_count, sizeof(unsigned char));
+    unsigned char u64_count = 0;
+    file.read((char*)&u64_count, sizeof(unsigned char));
+    unsigned char f32_count = 0;
+    file.read((char*)&f32_count, sizeof(unsigned char));
+    unsigned char f64_count = 0;
+    file.read((char*)&f64_count, sizeof(unsigned char));
+    unsigned long long stack_size = 0;
+    file.read((char*)&stack_size, sizeof(unsigned long long));
+
+    unsigned long long static_mem_size = 0;
+    file.read((char*)&static_mem_size, sizeof(unsigned long long));
+    unsigned long long block_size = 0;
+    file.read((char*)&block_size, sizeof(unsigned long long));
+
+    unsigned char * static_memory = new unsigned char[static_mem_size];
+    file.read((char*)static_memory, static_mem_size);
+
+    Instruction * instructions = new Instruction[block_size];
+    file.read((char*)instructions, block_size * sizeof(Instruction));
+
+    std::cout << "Version: " << version << "\n";
+    std::cout << "u32_count: " << (int)u32_count << "\n";
+    std::cout << "u64_count: " << (int)u64_count << "\n";
+    std::cout << "f32_count: " << (int)f32_count << "\n";
+    std::cout << "f64_count: " << (int)f64_count << "\n";
+    std::cout << "stack_size: " << stack_size << "\n";
+    std::cout << "static_mem_size: " << static_mem_size << "\n";
+    std::cout << "block_size: " << (int)block_size << "\n";*/
+    file.close();
+
+
+    // ncvm vm = ncvm_initArr(
+    //     instructions,// sizeof(instructions) / sizeof(Instruction),
+    //     static_memory//, sizeof(static_memory) / sizeof(char)
+    // );
+
+    ncvm_execute(&nc, DefaultThreadSettings);
+    std::cout << "\n\nStatic memory:\n";
+    for (int i = 0; i < nc.static_mem_size; i++)
+        std::cout << "[" << i << "] - " << (int)nc.static_mem_p[i] << "\n";
 }

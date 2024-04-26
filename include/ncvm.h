@@ -16,7 +16,8 @@
     #define _export
 #endif
 
-
+#define NCVM_MIN_VERSION 0
+#define NCVM_VERSION     0
 
 enum _packed OPCODE {
     /*==>  Other  <==*/
@@ -38,6 +39,12 @@ enum _packed OPCODE {
 
     ISR,    /*ird|0..7|8..15|_|Set first 16 bits to ird*/
     LSR,    /*lrd|0..7|8..15|_|Set first 16 bits to lrd*/
+    /*ISRF,    ird|0..7|8..15|_|Set first 16 bits to ird*/
+    /*ISRS,    ird|0..7|8..15|_|Set 16..31 bits to ird*/
+    /*LSRF,    lrd|0..7|8..15|_|Set first 16 bits to lrd*/
+    /*LSRS,    lrd|0..7|8..15|_|Set 16..31 bits to lrd*/
+    /*LSRT,    lrd|0..7|8..15|_|Set 32..47 bits to lrd*/
+    /*LSRQ,    lrd|0..7|8..15|_|Set 48..63 bits to lrd*/
 
     IRSI,   /*ir1|v|_|_|Shift ir1 on 'v' count of bits to the right*/
     ILSI,   /*ir1|v|_|_|Shift ir1 on 'v' count of bits to the left*/
@@ -196,8 +203,6 @@ enum _packed OPCODE {
     L_CALL  /*_|_|_|_*/
 };
 
-
-
 enum _packed REGISTER {
     R0,
     R1,
@@ -209,6 +214,7 @@ enum _packed REGISTER {
     R7
 };
 
+
 typedef struct {
     enum OPCODE opcode;
     unsigned char r1;
@@ -219,6 +225,7 @@ typedef struct {
 #define Instruction_Int(OP, R1, R2, R3) {OP, R1, R2, R3} 
 #define Instruction_Float(OP, R1, R2, R3) {OP, R1, R2, R3} 
 
+
 typedef struct {
     Instruction*   inst_p;
     unsigned long  inst_count;
@@ -228,21 +235,19 @@ typedef struct {
 
 typedef struct {
     ncvm* vm;
-    Instruction* current_instr_p;
-    unsigned char* extern_stack_p;
-    unsigned long extern_stack_size;
+    const Instruction* current_instr_p;
     void* stack_p;
-    unsigned int* u32_registers;
-    unsigned long* u64_registers;
-    float* f32_registers;
-    double* f64_registers;
+    unsigned int*       u32_registers;
+    unsigned long long* u64_registers;
+    float*              f32_registers;
+    double*             f64_registers;
 } ncvm_thread;
 
 typedef struct {
-    unsigned long u32_reg_size;
-    unsigned long u64_reg_size;
-    unsigned long f32_reg_size;
-    unsigned long f64_reg_size;
+    unsigned char u32_reg_size;
+    unsigned char u64_reg_size;
+    unsigned char f32_reg_size;
+    unsigned char f64_reg_size;
     unsigned long stack_size;   /* In bytes */
 } ThreadSettings;
 
@@ -251,6 +256,12 @@ typedef struct {
     .f32_reg_size=8, .f64_reg_size=8,\
     .stack_size=1024*1024*1\
 }
+
+
+typedef struct {
+    unsigned long static_mem_idx;
+    unsigned long inst_idx;
+} ByteCodeBlocksInfo;
 
 
 
@@ -262,21 +273,35 @@ extern "C" {
 #endif
 
 _export ncvm ncvm_initArr(
-    Instruction* inst_p, unsigned long inst_count,
-    unsigned char* static_mem_p, unsigned long static_mem_size
+    Instruction* inst_p,// unsigned long inst_count,
+    unsigned char* static_mem_p//, unsigned long static_mem_size
 );
-_export ncvm ncvm_initData(const char* data_p, unsigned long data_size);
+// Load from readed bytecode file
+_export ncvm ncvm_initData(
+    const unsigned char* data_p, const unsigned long data_size
+);
+// Load 
+_export ncvm ncvm_initStream(
+    const unsigned char* (*get_next_n_bytes)(const unsigned long long n, void* const data_p),
+    void* data_p,
+    int* ret_code
+);
+
 _export void ncvm_free(ncvm* vm);
 
 /**
     @param vm VM
 */
 _export unsigned char ncvm_execute(ncvm* vm, ThreadSettings settings);
-_export unsigned char ncvm_create_thread(
-    ncvm* vm, Instruction* start_instr_p, 
+
+_export ncvm_thread ncvm_create_thread(
+    ncvm* vm, const Instruction* start_instr_p, 
     unsigned char* ext_stack_p, unsigned long ext_stack_s,
-    ThreadSettings settings
+    ThreadSettings settings, int* ret_code
 );
+
+_export void ncvm_thread_free(ncvm_thread* thread);
+//_export unsigned char ncvm_thread_free();
 
 
 /* For cpp support */
