@@ -49,7 +49,7 @@ _export ncvm ncvm_initData(
     name = *(type*)tmp;
 
 #include <stdio.h>
-// Load 
+/* Load  */
 _export ncvm ncvm_initStream(
     const unsigned char* (*get_next_n_bytes)(unsigned long long n, void* data_p),
     void* data_p,

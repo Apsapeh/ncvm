@@ -273,14 +273,14 @@ extern "C" {
 #endif
 
 _export ncvm ncvm_initArr(
-    Instruction* inst_p,// unsigned long inst_count,
-    unsigned char* static_mem_p//, unsigned long static_mem_size
+    Instruction* inst_p,  /*unsigned long inst_count,*/
+    unsigned char* static_mem_p/*, unsigned long static_mem_size*/
 );
-// Load from readed bytecode file
+/* Load from readed bytecode file */
 _export ncvm ncvm_initData(
     const unsigned char* data_p, const unsigned long data_size
 );
-// Load 
+/* Load */
 _export ncvm ncvm_initStream(
     const unsigned char* (*get_next_n_bytes)(const unsigned long long n, void* const data_p),
     void* data_p,
@@ -301,7 +301,9 @@ _export ncvm_thread ncvm_create_thread(
 );
 
 _export void ncvm_thread_free(ncvm_thread* thread);
-//_export unsigned char ncvm_thread_free();
+_export unsigned char ncvm_execute_thread_step(ncvm_thread* thread);
+_export unsigned char ncvm_execute_thread(ncvm_thread* thread);
+/*_export unsigned char ncvm_thread_free();*/
 
 
 /* For cpp support */

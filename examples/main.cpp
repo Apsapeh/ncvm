@@ -98,7 +98,7 @@ int main() {
     //read byte file
     std::ifstream file("/Users/ghost/Desktop/Rust Projects/Projects/ncvm_asm/foo.bin", std::ios::binary);
     int ret_code = 0;
-    ncvm nc = ncvm_initStream(get_next_n_bytes, nullptr, &ret_code);
+    ncvm vm = ncvm_initStream(get_next_n_bytes, nullptr, &ret_code);
     /*unsigned int version = 0;
     file.read((char*)&version, sizeof(unsigned int));
     unsigned char u32_count = 0;
@@ -139,8 +139,11 @@ int main() {
     //     static_memory//, sizeof(static_memory) / sizeof(char)
     // );
 
-    ncvm_execute(&nc, DefaultThreadSettings);
+    //ncvm_execute(&nc, DefaultThreadSettings);
+    ncvm_thread thread = ncvm_create_thread(&vm, vm.inst_p, NULL, 0, DefaultThreadSettings, NULL);
+    ncvm_execute_thread(&thread);
+    ncvm_thread_free(&thread);
     std::cout << "\n\nStatic memory:\n";
-    for (int i = 0; i < nc.static_mem_size; i++)
-        std::cout << "[" << i << "] - " << (int)nc.static_mem_p[i] << "\n";
+    for (int i = 0; i < vm.static_mem_size; i++)
+        std::cout << "[" << i << "] - " << (int)vm.static_mem_p[i] << "\n";
 }
