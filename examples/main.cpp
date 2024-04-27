@@ -98,7 +98,7 @@ int main() {
     //read byte file
     std::ifstream file("/Users/ghost/Desktop/Rust Projects/Projects/ncvm_asm/foo.bin", std::ios::binary);
     int ret_code = 0;
-    ncvm vm = ncvm_initStream(get_next_n_bytes, nullptr, &ret_code);
+    ncvm vm = ncvm_loadBytecodeStream(get_next_n_bytes, nullptr, &ret_code);
     /*unsigned int version = 0;
     file.read((char*)&version, sizeof(unsigned int));
     unsigned char u32_count = 0;

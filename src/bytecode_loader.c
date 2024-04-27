@@ -22,14 +22,14 @@ const unsigned char* get_next_n_bytes(unsigned long long n, void* data_p) {
     return data;
 }
 
-_export ncvm ncvm_initData(
+_export ncvm ncvm_loadBytecodeData(
     const unsigned char* data_p, unsigned long data_size
 ) {
     dataStream stream = {
         .data_p = data_p,
         .data_size = data_size
     };
-    ncvm result =  ncvm_initStream(
+    ncvm result =  ncvm_loadBytecodeStream(
         get_next_n_bytes,
         &stream,
         0
@@ -50,7 +50,7 @@ _export ncvm ncvm_initData(
 
 #include <stdio.h>
 /* Load  */
-_export ncvm ncvm_initStream(
+_export ncvm ncvm_loadBytecodeStream(
     const unsigned char* (*get_next_n_bytes)(unsigned long long n, void* data_p),
     void* data_p,
     int* ret_code
@@ -75,6 +75,7 @@ _export ncvm ncvm_initStream(
     load_field(f32_count, unsigned char, 1);
     load_field(f64_count, unsigned char, 1);
     load_field(stack_size,      unsigned long long, 8);
+    load_field(call_stack_size, unsigned long long, 8)
     load_field(static_mem_size, unsigned long long, 8);
     load_field(block_size,      unsigned long long, 8);
 
@@ -92,6 +93,7 @@ _export ncvm ncvm_initStream(
 
     if (
            (unsigned long)stack_size      != stack_size
+        || (unsigned long)call_stack_size != call_stack_size
         || (unsigned long)static_mem_size != static_mem_size
         || (unsigned long)block_size      != block_size
     ) {
@@ -99,13 +101,13 @@ _export ncvm ncvm_initStream(
         return result;
     }
 
-
     printf("Version: %u\n", version);
     printf("u32_count: %u\n", u32_count);
     printf("u64_count: %u\n", u64_count);
     printf("f32_count: %u\n", f32_count);
     printf("f64_count: %u\n", f64_count);
     printf("stack_size: %llu\n", stack_size);
+    printf("call_stack_size: %llu\n", call_stack_size);
     printf("static_mem_size: %llu\n", static_mem_size);
     printf("block_size: %llu\n", block_size);
 
@@ -115,9 +117,11 @@ _export ncvm ncvm_initStream(
         u64_count,
         f32_count,
         f64_count,
-        stack_size
+        stack_size,
+        call_stack_size
     };
 
+    result.main_thread_settings = settings;
 
     result.inst_count = block_size;
     result.inst_p = malloc(block_size * 4);

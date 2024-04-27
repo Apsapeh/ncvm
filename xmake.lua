@@ -16,7 +16,7 @@ add_rules("mode.debug", "mode.release")
 
 add_repositories("apsapeh-repo https://github.com/Apsapeh/xmake-repo.git")
 
-add_requires("extc a871e9ead288ae75278972ecac57bf3ed51b8747")
+add_requires("extc 67103eabdcaec5186e18a0dfad6cedf33074d387")
 
 option("big_endian")
 option_end()

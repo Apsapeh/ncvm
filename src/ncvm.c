@@ -10,7 +10,11 @@
 stack_template_def(byte, u8)
 stack_template_impl(byte, u8)
 
-_export ncvm ncvm_initArr(
+stack_template_def(usize, usize)
+stack_template_impl(usize, usize)
+
+
+_export ncvm ncvm_init(
     Instruction* inst_p,
     u8* static_mem_p
 ) {
@@ -19,6 +23,7 @@ _export ncvm ncvm_initArr(
     /*ret.inst_count = inst_count;*/
     ret.static_mem_p = static_mem_p;
 
+    ret.main_thread_settings = (ThreadSettings)DefaultThreadSettings;
     return ret;
 }
 
@@ -29,11 +34,18 @@ _export void ncvm_free(ncvm* vm) {
     vm = NULL;
 }
 
-
-_export u8 ncvm_execute(ncvm* vm, ThreadSettings settings) {
+_export u8 ncvm_execute(ncvm* vm) {
     /* Create main thread */
     int code;
-    ncvm_create_thread(vm, vm->inst_p, NULL, 0, settings, &code);
+    ncvm_thread thread = ncvm_create_thread(
+        vm,
+        vm->inst_p,
+        NULL, 
+        0, 
+        vm->main_thread_settings, 
+        &code
+    );
+    ncvm_execute_thread(&thread);
     return code;
 }
 
@@ -62,6 +74,14 @@ _export ncvm_thread ncvm_create_thread(
             *ret_code = 2;
         return result;
     }
+
+    result.call_stack_p = malloc(sizeof(stack_usize));
+    *(stack_usize*)result.call_stack_p = stack_usize_init(settings.call_stack_size, &st_r);
+    if (st_r != 0) {
+        if (ret_code != NULL)
+            *ret_code = 3;
+        return result;
+    }
     
     /* Add extern stack to thread stack */
     if (EST != NULL)
@@ -87,6 +107,7 @@ _export ncvm_thread ncvm_create_thread(
 
 _export void ncvm_thread_free(ncvm_thread* thread) {
     stack_byte_free((stack_byte*)thread->stack_p);
+    stack_usize_free((stack_usize*)thread->call_stack_p);
     free(thread->u32_registers);
     free(thread->u64_registers);
     free(thread->f32_registers);
@@ -103,6 +124,9 @@ _export void ncvm_thread_free(ncvm_thread* thread) {
             goto while_exit;\
             break;\
         case RET:\
+            if (stack_usize_pop((stack_usize*)call_stack, (usize*)addr_register) == false)\
+                return 1;\
+            JUMP_TO_ADDR\
             break;\
 \
         case IMOV:\
@@ -223,10 +247,10 @@ _export void ncvm_thread_free(ncvm_thread* thread) {
 \
 \
         case POPI:\
-            stack_byte_pop_ptr(stack, IP->r1 + (IP->r2*256) + (IP->r3*65536));\
+            stack_byte_pop_ptr(stack, IP->r1 + (IP->r2*256) + (IP->r3*65536), NULL);\
             break;\
         case POPA:\
-            stack_byte_pop_ptr(stack, *addr_register);\
+            stack_byte_pop_ptr(stack, *addr_register, NULL);\
             break;\
         \
         case IPUSH:\
@@ -564,6 +588,12 @@ _export void ncvm_thread_free(ncvm_thread* thread) {
             }\
             break;\
 \
+        case CALL:\
+            if (stack_usize_push((stack_usize*)call_stack, (usize)IP+1) == false)\
+                return 1;\
+            JUMP_TO_ADDR\
+            break;\
+\
         default:\
             break;\
     }\
@@ -575,27 +605,28 @@ _export  u8 ncvm_execute_thread_step(ncvm_thread* thread) {
     u64* u64_registers = thread->u64_registers;
     f32* f32_registers = thread->f32_registers;
     f64* f64_registers = thread->f64_registers;
-    stack_byte* stack = (stack_byte*)thread->stack_p;
+    stack_byte* stack  = (stack_byte*)thread->stack_p;
+    stack_usize* call_stack = (stack_usize*)thread->call_stack_p;
     ncvm *vm = thread->vm;
 
     u64* const addr_register = &thread->u64_registers[0];
-    register const Instruction* IP = thread->current_instr_p;
+    const Instruction* IP = thread->current_instr_p;
 
     EXECUTE_COMMAND        
 
     while_exit:;
+    thread->current_instr_p = IP;
     return 0;
 }
 
 
 _export u8 ncvm_execute_thread(ncvm_thread* thread) {
-    /*u64[0] - addr register*/
-    /*u64* const addr_register = &result.u64_registers[0];*/
     u32* u32_registers = thread->u32_registers;
     u64* u64_registers = thread->u64_registers;
     f32* f32_registers = thread->f32_registers;
     f64* f64_registers = thread->f64_registers;
     stack_byte* stack = (stack_byte*)thread->stack_p;
+    stack_usize* call_stack = (stack_usize*)thread->call_stack_p;
     ncvm *vm = thread->vm;
 
     u64* const addr_register = &thread->u64_registers[0];
@@ -604,6 +635,7 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
         EXECUTE_COMMAND        
     }
     while_exit:;
+    thread->current_instr_p = IP;
     return 0;
 }
 

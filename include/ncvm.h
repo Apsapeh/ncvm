@@ -198,7 +198,7 @@ enum _packed OPCODE {
     DJMG,   /*dr1|dr2|_|a|jmp to ar if dr1 > dr2*/
     DJEG,   /*dr1|dr2|_|a|jmp to ar if dr1 >= dr2*/
 
-
+    CALL,   /*_|_|_|a|Call to ar*/
     /*==>  Lib  <==*/
     L_CALL  /*_|_|_|_*/
 };
@@ -225,37 +225,40 @@ typedef struct {
 #define Instruction_Int(OP, R1, R2, R3) {OP, R1, R2, R3} 
 #define Instruction_Float(OP, R1, R2, R3) {OP, R1, R2, R3} 
 
-
-typedef struct {
-    Instruction*   inst_p;
-    unsigned long  inst_count;
-    unsigned char* static_mem_p;
-    unsigned long  static_mem_size; /* Size in bytes */
-} ncvm;
-
-typedef struct {
-    ncvm* vm;
-    const Instruction* current_instr_p;
-    void* stack_p;
-    unsigned int*       u32_registers;
-    unsigned long long* u64_registers;
-    float*              f32_registers;
-    double*             f64_registers;
-} ncvm_thread;
-
 typedef struct {
     unsigned char u32_reg_size;
     unsigned char u64_reg_size;
     unsigned char f32_reg_size;
     unsigned char f64_reg_size;
     unsigned long stack_size;   /* In bytes */
+    unsigned long call_stack_size; /* In long */
 } ThreadSettings;
 
 #define DefaultThreadSettings {\
     .u32_reg_size=8, .u64_reg_size=8,\
     .f32_reg_size=8, .f64_reg_size=8,\
-    .stack_size=1024*1024*1\
+    .stack_size=1024*1024*1,\
+    .call_stack_size=1024*128\
 }
+
+typedef struct {
+    Instruction*   inst_p;
+    unsigned long  inst_count;
+    unsigned char* static_mem_p;
+    unsigned long  static_mem_size; /* Size in bytes */
+    ThreadSettings main_thread_settings;
+} ncvm;
+
+typedef struct {
+    ncvm* vm;
+    const Instruction* current_instr_p;
+    void* stack_p;
+    void* call_stack_p;
+    unsigned int*       u32_registers;
+    unsigned long long* u64_registers;
+    float*              f32_registers;
+    double*             f64_registers;
+} ncvm_thread;
 
 
 typedef struct {
@@ -272,27 +275,50 @@ typedef struct {
 extern "C" {
 #endif
 
-_export ncvm ncvm_initArr(
+/**
+    @brief Initialize VM    
+    @param inst_p Instructions array
+    @param static_mem_p Static memory
+    @return VM
+ */
+_export ncvm ncvm_init(
     Instruction* inst_p,  /*unsigned long inst_count,*/
     unsigned char* static_mem_p/*, unsigned long static_mem_size*/
 );
-/* Load from readed bytecode file */
-_export ncvm ncvm_initData(
+
+/** 
+    @brief Load VM from bytecode data
+    @param data_p Bytecode data
+    @param data_size Bytecode data size
+    @return VM
+*/
+_export ncvm ncvm_loadBytecodeData(
     const unsigned char* data_p, const unsigned long data_size
 );
-/* Load */
-_export ncvm ncvm_initStream(
+
+/** 
+    @brief Load VM from bytecode stream
+    @param get_next_n_bytes Function to get next n bytes
+    @param data_p Data pointer
+    @param ret_code Return code
+    @return VM
+*/
+_export ncvm ncvm_loadBytecodeStream(
     const unsigned char* (*get_next_n_bytes)(const unsigned long long n, void* const data_p),
     void* data_p,
     int* ret_code
 );
 
+/**
+    @brief Free VM
+    @param vm VM
+*/
 _export void ncvm_free(ncvm* vm);
 
 /**
     @param vm VM
 */
-_export unsigned char ncvm_execute(ncvm* vm, ThreadSettings settings);
+_export unsigned char ncvm_execute(ncvm* vm);
 
 _export ncvm_thread ncvm_create_thread(
     ncvm* vm, const Instruction* start_instr_p, 
