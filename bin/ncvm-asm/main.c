@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
                 || (words.size > 1 && words.data[1].str[0] == '(')
             )
         ) {
-            printf("Static memory definition found: %s\n", f_str->str);
+            //printf("Static memory definition found: %s\n", f_str->str);
         }
 
         free_vec_string(&words);

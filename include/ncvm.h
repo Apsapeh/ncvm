@@ -247,7 +247,7 @@ typedef struct {
     unsigned char* static_mem_p;
     unsigned long  static_mem_size; /* Size in bytes */
     ThreadSettings main_thread_settings;
-    void**          lib_functions;
+    void**         lib_functions;
 } ncvm;
 
 typedef struct {
@@ -268,6 +268,9 @@ typedef struct {
 } ByteCodeBlocksInfo;
 
 
+typedef void (*ncvm_lib_function)(ncvm_thread* thread);
+
+#define NCVM_LIB_FUNCTION(name) void name(ncvm_thread* thread)
 
 /* ======================> Functions (C and CPP) <====================== */
 
@@ -283,10 +286,10 @@ extern "C" {
     @return VM
  */
 _export ncvm ncvm_init(
-    Instruction*   inst_p,  /*unsigned long inst_count,*/
-    unsigned char* static_mem_p,/*, unsigned long static_mem_size*/
-    const char**   libs,
-    unsigned long  libs_count
+    Instruction*      inst_p,  /*unsigned long inst_count,*/
+    unsigned char*    static_mem_p,/*, unsigned long static_mem_size*/
+    ncvm_lib_function (*get_lib_function)(const char* name, void* lib_data_p),
+    void*             lib_data_p
 );
 
 /** 
@@ -298,8 +301,8 @@ _export ncvm ncvm_init(
 _export ncvm ncvm_loadBytecodeData(
     const unsigned char* data_p,
     const unsigned long  data_size,
-    const char**         libs,
-    unsigned long        libs_count
+    ncvm_lib_function    (*get_lib_function)(const char* name, void* lib_data_p),
+    void*                lib_data_p
 );
 
 /** 
@@ -311,10 +314,10 @@ _export ncvm ncvm_loadBytecodeData(
 */
 _export ncvm ncvm_loadBytecodeStream(
     const unsigned char* (*get_next_n_bytes)(const unsigned long long n, void* const data_p),
-    void*         data_p,
-    const char**  libs,
-    unsigned long libs_count,
-    int*          ret_code
+    void*             data_p,
+    ncvm_lib_function (*get_lib_function)(const char* name, void* lib_data_p),
+    void*             lib_data_p,
+    int*              ret_code
 );
 
 /**
@@ -342,6 +345,26 @@ _export unsigned char ncvm_execute_thread_step(ncvm_thread* thread);
 _export unsigned char ncvm_execute_thread(ncvm_thread* thread);
 /*_export unsigned char ncvm_thread_free();*/
 
+
+/* Default loaders */
+/*#ifdef __NCVM_DEFAULT_LOADERS*/
+typedef struct  {
+    void** lib_handlers;
+    unsigned long lib_handlers_count;
+} ncvm_default_lib_loader;
+
+_export ncvm_default_lib_loader ncvm_default_lib_loader_init(
+    const char** lib_names,
+    unsigned long lib_names_count
+);
+_export ncvm_lib_function ncvm_default_get_lib_function(
+    const char* name,
+    void* loader /* (ncvm_default_lib_loader*) */
+);
+_export void ncvm_default_lib_function_loader_free(
+    ncvm_default_lib_loader* loader
+);
+/*#endif*/
 
 /* For cpp support */
 #ifdef __cplusplus

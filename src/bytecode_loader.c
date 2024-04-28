@@ -27,8 +27,8 @@ const unsigned char* get_next_n_bytes(
 _export ncvm ncvm_loadBytecodeData(
     const unsigned char* data_p,
     const unsigned long  data_size,
-    const char**         libs,
-    unsigned long        libs_count
+    ncvm_lib_function    (*get_lib_function)(const char* name, void* lib_data_p),
+    void*                lib_data_p
 ) {
     dataStream stream = {
         .data_p = data_p,
@@ -37,8 +37,8 @@ _export ncvm ncvm_loadBytecodeData(
     ncvm result =  ncvm_loadBytecodeStream(
         get_next_n_bytes,
         &stream,
-        libs,
-        libs_count,
+        get_lib_function,
+        lib_data_p,
         0
     );
     return result;
@@ -54,14 +54,18 @@ _export ncvm ncvm_loadBytecodeData(
     } \
     type name = *(type*)tmp;
 
+#ifdef __NCVM_DEBUG
 #include <stdio.h>
+#endif
+#include <dlfcn.h>
+
 /* Load  */
 _export ncvm ncvm_loadBytecodeStream(
     const unsigned char* (*get_next_n_bytes)(const unsigned long long n, void* const data_p),
-    void*         data_p,
-    const char**  libs,
-    unsigned long libs_count,
-    int*          ret_code
+    void*             data_p,
+    ncvm_lib_function (*get_lib_function)(const char* name, void* lib_data_p),
+    void*             lib_data_p,
+    int*              ret_code
 ) {
     ncvm result;
 
@@ -89,6 +93,12 @@ _export ncvm ncvm_loadBytecodeStream(
     load_field(static_mem_size,     unsigned long long, 8)
     load_field(block_size,          unsigned long long, 8)
 
+    const char* fn_names = (const char*)get_next_n_bytes(lib_functions_size, data_p); \
+    if (tmp == (void*)0) { \
+        *ret_code = 1; \
+        return result; \
+    } \
+
     const unsigned char * static_memory = get_next_n_bytes(static_mem_size, data_p);
     if (static_memory == (void*)0) {
         *ret_code = 1;
@@ -113,6 +123,7 @@ _export ncvm ncvm_loadBytecodeStream(
         return result;
     }
 
+#ifdef __NCVM_DEBUG
     printf("Version: %u\n", version);
     printf("u32_count: %u\n", u32_count);
     printf("u64_count: %u\n", u64_count);
@@ -124,9 +135,9 @@ _export ncvm ncvm_loadBytecodeStream(
     printf("lib_functions_size: %llu\n", lib_functions_size);
     printf("static_mem_size: %llu\n", static_mem_size);
     printf("block_size: %llu\n", block_size);
+#endif
 
-    
-    ThreadSettings settings = {
+    result.main_thread_settings = (ThreadSettings) {
         u32_count,
         u64_count,
         f32_count,
@@ -135,7 +146,6 @@ _export ncvm ncvm_loadBytecodeStream(
         call_stack_size
     };
 
-    result.main_thread_settings = settings;
 
     result.inst_count = block_size;
     result.inst_p = malloc(block_size * 4);
@@ -145,17 +155,27 @@ _export ncvm ncvm_loadBytecodeStream(
     result.static_mem_p = malloc(static_mem_size);
     memcpy(result.static_mem_p, (void*)static_memory, (unsigned long)static_mem_size);
 
+    
+    /*// void* handle = dlopen("build/macosx/arm64/release/liblib1.dylib", RTLD_LAZY);
+    // if (!handle) {
+    //     //fprintf(stderr, "dlopen failed: %s\n", dlerror());
+    //     exit(25);
+    // }*/
+
+
 
     result.lib_functions = malloc(lib_functions_count * sizeof(void*));
     unsigned long i_func = 0;
     unsigned long i_lib = 0;
     for (i_func = 0; i_func < lib_functions_count; ++i_func) {
-        for (i_lib = 0; i_lib < libs_count; ++i_lib) {
-            printf("Loading lib: %s\n", libs[i_lib]);
+        ncvm_lib_function f = get_lib_function(fn_names, lib_data_p);
+        if (f == NULL) {
+            *ret_code = 1;
+            return result;
         }
+
+        result.lib_functions[i_func] = f;
     }
-
-
 
     *ret_code = 0;
     return result;

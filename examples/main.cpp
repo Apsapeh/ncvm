@@ -97,58 +97,30 @@ int main() {
 
     //read byte file
     const char* libs[]= {
-        "print",
-        "math"
+        "build/macosx/arm64/release/liblib1.dylib",
+        //"math"
     };
+
+    ncvm_default_lib_loader lib_loader = ncvm_default_lib_loader_init(libs, 1);
 
     std::ifstream file("/Users/ghost/Desktop/Rust Projects/Projects/ncvm_asm/foo.bin", std::ios::binary);
     int ret_code = 0;
-    ncvm vm = ncvm_loadBytecodeStream(get_next_n_bytes, nullptr, libs, 2, &ret_code);
-    /*unsigned int version = 0;
-    file.read((char*)&version, sizeof(unsigned int));
-    unsigned char u32_count = 0;
-    file.read((char*)&u32_count, sizeof(unsigned char));
-    unsigned char u64_count = 0;
-    file.read((char*)&u64_count, sizeof(unsigned char));
-    unsigned char f32_count = 0;
-    file.read((char*)&f32_count, sizeof(unsigned char));
-    unsigned char f64_count = 0;
-    file.read((char*)&f64_count, sizeof(unsigned char));
-    unsigned long long stack_size = 0;
-    file.read((char*)&stack_size, sizeof(unsigned long long));
-
-    unsigned long long static_mem_size = 0;
-    file.read((char*)&static_mem_size, sizeof(unsigned long long));
-    unsigned long long block_size = 0;
-    file.read((char*)&block_size, sizeof(unsigned long long));
-
-    unsigned char * static_memory = new unsigned char[static_mem_size];
-    file.read((char*)static_memory, static_mem_size);
-
-    Instruction * instructions = new Instruction[block_size];
-    file.read((char*)instructions, block_size * sizeof(Instruction));
-
-    std::cout << "Version: " << version << "\n";
-    std::cout << "u32_count: " << (int)u32_count << "\n";
-    std::cout << "u64_count: " << (int)u64_count << "\n";
-    std::cout << "f32_count: " << (int)f32_count << "\n";
-    std::cout << "f64_count: " << (int)f64_count << "\n";
-    std::cout << "stack_size: " << stack_size << "\n";
-    std::cout << "static_mem_size: " << static_mem_size << "\n";
-    std::cout << "block_size: " << (int)block_size << "\n";*/
+    ncvm vm = ncvm_loadBytecodeStream(
+        get_next_n_bytes,
+        nullptr,
+        ncvm_default_get_lib_function,
+        &lib_loader,
+        &ret_code
+    );
     file.close();
 
-
-    // ncvm vm = ncvm_initArr(
-    //     instructions,// sizeof(instructions) / sizeof(Instruction),
-    //     static_memory//, sizeof(static_memory) / sizeof(char)
-    // );
-
-    //ncvm_execute(&nc, DefaultThreadSettings);
     ncvm_thread thread = ncvm_create_thread(&vm, vm.inst_p, NULL, 0, DefaultThreadSettings, NULL);
     ncvm_execute_thread(&thread);
+
     ncvm_thread_free(&thread);
-    std::cout << "\n\nStatic memory:\n";
-    for (int i = 0; i < vm.static_mem_size; i++)
-        std::cout << "[" << i << "] - " << (int)vm.static_mem_p[i] << "\n";
+    ncvm_free(&vm);
+    ncvm_default_lib_function_loader_free(&lib_loader);
+    //std::cout << "\n\nStatic memory:\n";
+    //for (int i = 0; i < vm.static_mem_size; i++)
+    //    std::cout << "[" << i << "] - " << (int)vm.static_mem_p[i] << "\n";
 }

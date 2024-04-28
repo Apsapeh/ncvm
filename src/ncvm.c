@@ -3,8 +3,6 @@
 #include <string.h>
 #include <extc_stack.h>
 
-/*#include <stdio.h>*/
-
 #include "util.h"
 
 stack_template_def(byte, u8)
@@ -15,10 +13,10 @@ stack_template_impl(usize, usize)
 
 
 _export ncvm ncvm_init(
-    Instruction*   inst_p,  /*unsigned long inst_count,*/
-    unsigned char* static_mem_p,/*, unsigned long static_mem_size*/
-    const char**    libs,
-    unsigned long  libs_count
+    Instruction*      inst_p,  /*unsigned long inst_count,*/
+    unsigned char*    static_mem_p,/*, unsigned long static_mem_size*/
+    ncvm_lib_function (*get_lib_function)(const char* name, void* lib_data_p),
+    void*             lib_data_p
 ) {
     ncvm ret;
     ret.inst_p = inst_p;
@@ -33,7 +31,7 @@ _export ncvm ncvm_init(
 _export void ncvm_free(ncvm* vm) {
     free(vm->inst_p);
     free(vm->static_mem_p);
-    vm = NULL;
+    /*vm = NULL;*/
 }
 
 _export u8 ncvm_execute(ncvm* vm) {
@@ -114,7 +112,7 @@ _export void ncvm_thread_free(ncvm_thread* thread) {
     free(thread->u64_registers);
     free(thread->f32_registers);
     free(thread->f64_registers);
-    thread = NULL;
+    /*thread = NULL;*/
 }
 
 #include <stdio.h>
@@ -595,6 +593,10 @@ _export void ncvm_thread_free(ncvm_thread* thread) {
             if (stack_usize_push((stack_usize*)call_stack, IP - vm->inst_p + 1) == false)\
                 return 1;\
             JUMP_TO_ADDR\
+            break;\
+\
+        case LIBCALL:\
+            ((ncvm_lib_function)vm->lib_functions[*addr_register])(thread);\
             break;\
 \
         default:\
