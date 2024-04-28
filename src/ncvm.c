@@ -15,8 +15,10 @@ stack_template_impl(usize, usize)
 
 
 _export ncvm ncvm_init(
-    Instruction* inst_p,
-    u8* static_mem_p
+    Instruction*   inst_p,  /*unsigned long inst_count,*/
+    unsigned char* static_mem_p,/*, unsigned long static_mem_size*/
+    const char**    libs,
+    unsigned long  libs_count
 ) {
     ncvm ret;
     ret.inst_p = inst_p;
@@ -115,6 +117,7 @@ _export void ncvm_thread_free(ncvm_thread* thread) {
     thread = NULL;
 }
 
+#include <stdio.h>
 
 #define JUMP_TO_ADDR IP = &vm->inst_p[*addr_register] - 1;
 #define EXECUTE_COMMAND\
@@ -125,7 +128,7 @@ _export void ncvm_thread_free(ncvm_thread* thread) {
             break;\
         case RET:\
             if (stack_usize_pop((stack_usize*)call_stack, (usize*)addr_register) == false)\
-                return 1;\
+                goto while_exit;\
             JUMP_TO_ADDR\
             break;\
 \
@@ -589,7 +592,7 @@ _export void ncvm_thread_free(ncvm_thread* thread) {
             break;\
 \
         case CALL:\
-            if (stack_usize_push((stack_usize*)call_stack, (usize)IP+1) == false)\
+            if (stack_usize_push((stack_usize*)call_stack, IP - vm->inst_p + 1) == false)\
                 return 1;\
             JUMP_TO_ADDR\
             break;\

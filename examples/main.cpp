@@ -96,9 +96,14 @@ int main() {
         std::cout << "[" << i++ << "] - " << (int)ch  << "\n";*/
 
     //read byte file
+    const char* libs[]= {
+        "print",
+        "math"
+    };
+
     std::ifstream file("/Users/ghost/Desktop/Rust Projects/Projects/ncvm_asm/foo.bin", std::ios::binary);
     int ret_code = 0;
-    ncvm vm = ncvm_loadBytecodeStream(get_next_n_bytes, nullptr, &ret_code);
+    ncvm vm = ncvm_loadBytecodeStream(get_next_n_bytes, nullptr, libs, 2, &ret_code);
     /*unsigned int version = 0;
     file.read((char*)&version, sizeof(unsigned int));
     unsigned char u32_count = 0;

@@ -200,7 +200,7 @@ enum _packed OPCODE {
 
     CALL,   /*_|_|_|a|Call to ar*/
     /*==>  Lib  <==*/
-    L_CALL  /*_|_|_|_*/
+    LIBCALL  /*_|_|_|_*/
 };
 
 enum _packed REGISTER {
@@ -247,6 +247,7 @@ typedef struct {
     unsigned char* static_mem_p;
     unsigned long  static_mem_size; /* Size in bytes */
     ThreadSettings main_thread_settings;
+    void**          lib_functions;
 } ncvm;
 
 typedef struct {
@@ -282,8 +283,10 @@ extern "C" {
     @return VM
  */
 _export ncvm ncvm_init(
-    Instruction* inst_p,  /*unsigned long inst_count,*/
-    unsigned char* static_mem_p/*, unsigned long static_mem_size*/
+    Instruction*   inst_p,  /*unsigned long inst_count,*/
+    unsigned char* static_mem_p,/*, unsigned long static_mem_size*/
+    const char**   libs,
+    unsigned long  libs_count
 );
 
 /** 
@@ -293,7 +296,10 @@ _export ncvm ncvm_init(
     @return VM
 */
 _export ncvm ncvm_loadBytecodeData(
-    const unsigned char* data_p, const unsigned long data_size
+    const unsigned char* data_p,
+    const unsigned long  data_size,
+    const char**         libs,
+    unsigned long        libs_count
 );
 
 /** 
@@ -305,8 +311,10 @@ _export ncvm ncvm_loadBytecodeData(
 */
 _export ncvm ncvm_loadBytecodeStream(
     const unsigned char* (*get_next_n_bytes)(const unsigned long long n, void* const data_p),
-    void* data_p,
-    int* ret_code
+    void*         data_p,
+    const char**  libs,
+    unsigned long libs_count,
+    int*          ret_code
 );
 
 /**
@@ -321,9 +329,12 @@ _export void ncvm_free(ncvm* vm);
 _export unsigned char ncvm_execute(ncvm* vm);
 
 _export ncvm_thread ncvm_create_thread(
-    ncvm* vm, const Instruction* start_instr_p, 
-    unsigned char* ext_stack_p, unsigned long ext_stack_s,
-    ThreadSettings settings, int* ret_code
+    ncvm*              vm,
+    const Instruction* start_instr_p, 
+    unsigned char*     ext_stack_p,
+    unsigned long      ext_stack_s,
+    ThreadSettings     settings,
+    int*               ret_code
 );
 
 _export void ncvm_thread_free(ncvm_thread* thread);
