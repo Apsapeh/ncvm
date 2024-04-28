@@ -175,6 +175,7 @@ _export ncvm ncvm_loadBytecodeStream(
         }
 
         result.lib_functions[i_func] = f;
+        fn_names += strlen(fn_names) + 1;
     }
 
     *ret_code = 0;
