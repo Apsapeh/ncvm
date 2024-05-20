@@ -1,4 +1,7 @@
 function set_mode_rules()
+    --set_toolset("cc", "/opt/homebrew/opt/llvm/bin/clang")
+    --set_toolset("c++", "/opt/homebrew/opt/llvm/bin/clang++")
+    --set_toolset("ld", "/opt/homebrew/opt/llvm/bin/clang++")
     if is_mode("debug") then
         set_symbols("debug")
         set_optimize("none")
@@ -7,7 +10,7 @@ function set_mode_rules()
     elseif is_mode("release") then
         set_symbols("hidden")
         --set_fpmodels("fast")
-        set_optimize("fastest")
+        set_optimize("aggressive")
         set_strip("all")
     end
 end
@@ -32,6 +35,7 @@ target("ncvm-static")
     add_includedirs("include")
     add_files("src/*.c")
     set_mode_rules()
+    --set_policy("build.optimization.lto", true)
 
     add_options("default_loaders")
     if has_config("big_endian") then 
@@ -85,6 +89,8 @@ target("ncvm-cpp-example")
     add_deps("ncvm-static")
     add_includedirs("include")
     add_files("examples/main.cpp")
+    set_policy("build.optimization.lto", true)
+    --add_ldflags("-flto=thin")
     set_rundir("$(projectdir)")
     set_mode_rules()
 

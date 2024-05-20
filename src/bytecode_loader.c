@@ -57,7 +57,6 @@ _export ncvm ncvm_loadBytecodeData(
 #ifdef __NCVM_DEBUG
 #include <stdio.h>
 #endif
-#include <dlfcn.h>
 
 /* Load  */
 _export ncvm ncvm_loadBytecodeStream(
@@ -154,14 +153,6 @@ _export ncvm ncvm_loadBytecodeStream(
     result.static_mem_size = static_mem_size;
     result.static_mem_p = malloc(static_mem_size);
     memcpy(result.static_mem_p, (void*)static_memory, (unsigned long)static_mem_size);
-
-    
-    /*// void* handle = dlopen("build/macosx/arm64/release/liblib1.dylib", RTLD_LAZY);
-    // if (!handle) {
-    //     //fprintf(stderr, "dlopen failed: %s\n", dlerror());
-    //     exit(25);
-    // }*/
-
 
 
     result.lib_functions = malloc(lib_functions_count * sizeof(void*));

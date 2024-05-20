@@ -598,9 +598,6 @@ _export void ncvm_thread_free(ncvm_thread* thread) {
         case LIBCALL:\
             ((ncvm_lib_function)vm->lib_functions[*addr_register])(thread);\
             break;\
-\
-        default:\
-            break;\
     }\
     ++IP;
 
@@ -617,7 +614,7 @@ _export  u8 ncvm_execute_thread_step(ncvm_thread* thread) {
     u64* const addr_register = &thread->u64_registers[0];
     const Instruction* IP = thread->current_instr_p;
 
-    EXECUTE_COMMAND        
+    //EXECUTE_COMMAND        
 
     while_exit:;
     thread->current_instr_p = IP;
@@ -634,12 +631,543 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
     stack_usize* call_stack = (stack_usize*)thread->call_stack_p;
     ncvm *vm = thread->vm;
 
+    static const void *const labels[120] = {
+        &&NOP,    &&STOP,  &&RET,   &&IMOV,  &&LMOV,  &&FMOV,  &&DMOV,
+        &&IRCLR,  &&LRCLR, &&FRCLR, &&DRCLR, &&ISR,   &&LSR,   &&IRSI,
+        &&ILSI,   &&LRSI,  &&LLSI,  &&IRSA,  &&ILSA,  &&LRSA,  &&LLSA,
+        &&ISMLD,  &&ISMST, &&LSMLD, &&LSMST, &&FSMLD, &&FSMST, &&DSMLD,
+        &&DSMST,  &&POPI,  &&POPA,  &&IPUSH, &&ISTLD, &&ISTST, &&LPUSH,
+        &&LSTLD,  &&LSTST, &&FPUSH, &&FSTLD, &&FSTST, &&DPUSH, &&DSTLD,
+        &&DSTST,  &&ALLOC, &&FREE,  &&HELD,  &&HEST,  &&IADD,  &&ISUB,
+        &&IMULT,  &&IDIV,  &&IMOD,  &&IINC,  &&IDEC, &&INEG,  &&LADD,  &&LSUB,
+        &&LMULT,  &&LDIV,  &&LMOD,  &&LINC,  &&LDEC, &&LNEG,  &&FADD,  &&FSUB,
+        &&FMULT,  &&FDIV,  &&FINC,  &&FDEC, &&FNEG,  &&DADD,  &&DSUB,  &&DMULT,
+        &&DDIV,   &&DINC,  &&DDEC, &&DNEG,  &&LTOI,  &&FTOI,  &&DTOI,  &&ITOL,
+        &&FTOL,   &&DTOL,  &&ITOF,  &&LTOF,  &&DTOF,  &&ITOD,  &&LTOD,
+        &&FTOD,   &&JMP,   &&IJEZ,  &&IJNZ,  &&IJEQ,  &&IJNQ,  &&IJML,
+        &&IJEL,   &&IJMG,  &&IJEG,  &&LJEZ,  &&LJNZ,  &&LJEQ,  &&LJNQ,
+        &&LJML,   &&LJEL,  &&LJMG,  &&LJEG,  &&FJEZ,  &&FJNZ,  &&FJEQ,
+        &&FJNQ,   &&FJML,  &&FJEL,  &&FJMG,  &&FJEG,  &&DJEZ,  &&DJNZ,
+        &&DJEQ,   &&DJNQ,  &&DJML,  &&DJEL,  &&DJMG,  &&DJEG,  &&CALL,
+        &&LIBCALL
+    };
+
     u64* const addr_register = &thread->u64_registers[0];
-    register const Instruction* IP = thread->current_instr_p;
+    register const Instruction* IP = thread->current_instr_p-1;
     while (true) {
-        EXECUTE_COMMAND        
+        ++IP;
+        //printf("%d\n", IP->opcode);
+        goto *labels[IP->opcode];
+
+
+        // EXECUTE_COMMAND
+    NOP:
+        continue;
+    STOP:
+        /* TODO: add regisetr */
+        break;
+    RET:
+        if (stack_usize_pop((stack_usize *)call_stack,
+                            (usize *)addr_register) == false)
+            //goto while_exit;
+            break;
+        JUMP_TO_ADDR
+        continue;
+
+    IMOV:
+        u32_registers[IP->r1] = u32_registers[IP->r2];
+        continue;
+    LMOV:
+        u64_registers[IP->r1] = u64_registers[IP->r2];
+        continue;
+    FMOV:
+        f32_registers[IP->r1] = f32_registers[IP->r2];
+        continue;
+    DMOV:
+        f64_registers[IP->r1] = f64_registers[IP->r2];
+        continue;
+
+    IRCLR:
+        u32_registers[IP->r1] = 0;
+        continue;
+    LRCLR:
+        u64_registers[IP->r1] = 0;
+        continue;
+    FRCLR:
+        f32_registers[IP->r1] = 0;
+        continue;
+    DRCLR:
+        f64_registers[IP->r1] = 0;
+        continue;
+
+    ISR:
+        *((u8 *)(u32_registers + IP->r1)) = IP->r2;
+        *((u8 *)(u32_registers + IP->r1) + 1) = IP->r3;
+        continue;
+    LSR:
+        *((u8 *)(u64_registers + IP->r1)) = IP->r2;
+        *((u8 *)(u64_registers + IP->r1) + 1) = IP->r3;
+        continue;
+
+        /*ISRF:
+            *((u8*)(u32_registers+IP->r1)) = IP->r2;
+            *((u8*)(u32_registers+IP->r1)+1) = IP->r3;
+            continue;
+        ISRS:
+            *((u8*)(u32_registers+IP->r1)+2) = IP->r2;
+            *((u8*)(u32_registers+IP->r1)+3) = IP->r3;
+            continue;
+        LSRF:
+            *((u8*)(u64_registers+IP->r1)) = IP->r2;
+            *((u8*)(u64_registers+IP->r1)+1) = IP->r3;
+            continue;
+        LSRS:
+            *((u8*)(u64_registers+IP->r1)+2) = IP->r2;
+            *((u8*)(u64_registers+IP->r1)+3) = IP->r3;
+            continue;
+        LSRT:
+            *((u8*)(u64_registers+IP->r1)+4) = IP->r2;
+            *((u8*)(u64_registers+IP->r1)+5) = IP->r3;
+            continue;
+        LSRQ:
+            *((u8*)(u64_registers+IP->r1)+6) = IP->r2;
+            *((u8*)(u64_registers+IP->r1)+7) = IP->r3;
+            continue;*/
+
+    IRSI:
+        u32_registers[IP->r1] = u32_registers[IP->r2] >> IP->r3;
+        continue;
+    ILSI:
+        u32_registers[IP->r1] = u32_registers[IP->r2] << IP->r3;
+        continue;
+    LRSI:
+        u64_registers[IP->r1] = u64_registers[IP->r2] >> IP->r3;
+        continue;
+    LLSI:
+        u64_registers[IP->r1] = u64_registers[IP->r2] << IP->r3;
+        continue;
+
+    IRSA:
+        u32_registers[IP->r1] = u32_registers[IP->r2] >> *addr_register;
+        continue;
+    ILSA:
+        u32_registers[IP->r1] = u32_registers[IP->r2] << *addr_register;
+        continue;
+    LRSA:
+        u64_registers[IP->r1] = u64_registers[IP->r2] >> *addr_register;
+        continue;
+    LLSA:
+        u64_registers[IP->r1] = u64_registers[IP->r2] << *addr_register;
+        continue;
+
+    ISMLD:
+        u32_registers[IP->r1] = 0;
+        memcpy(&u32_registers[IP->r1], &vm->static_mem_p[*addr_register],
+               IP->r2);
+        continue;
+    ISMST:
+        memcpy(&vm->static_mem_p[*addr_register], &u32_registers[IP->r1],
+               IP->r2);
+        continue;
+
+    LSMLD:
+        u64_registers[IP->r1] = 0;
+        memcpy(&u64_registers[IP->r1], &vm->static_mem_p[*addr_register],
+               IP->r2);
+        continue;
+    LSMST:
+        memcpy(&vm->static_mem_p[*addr_register], &u64_registers[IP->r1],
+               IP->r2);
+        continue;
+
+    FSMLD:
+        memcpy(&f32_registers[IP->r1], &vm->static_mem_p[*addr_register], 4);
+        continue;
+    FSMST:
+        memcpy(&vm->static_mem_p[*addr_register], &f32_registers[IP->r1], 4);
+        continue;
+
+    DSMLD:
+        memcpy(&f64_registers[IP->r1], &vm->static_mem_p[*addr_register], 8);
+        continue;
+    DSMST:
+        memcpy(&vm->static_mem_p[*addr_register], &f64_registers[IP->r1], 8);
+        continue;
+
+    POPI:
+        stack_byte_pop_ptr(stack, IP->r1 + (IP->r2 * 256) + (IP->r3 * 65536),
+                           NULL);
+        continue;
+    POPA:
+        stack_byte_pop_ptr(stack, *addr_register, NULL);
+        continue;
+
+    IPUSH:
+        stack_byte_push_ptr(stack, (u8 *)&u32_registers[IP->r1], IP->r2);
+        continue;
+    ISTLD:
+        u32_registers[IP->r1] = 0;
+        memcpy(&u32_registers[IP->r1], &stack->data[*addr_register], IP->r2);
+        continue;
+    ISTST:
+        memcpy(&stack->data[*addr_register], &u32_registers[IP->r1], IP->r2);
+        continue;
+
+    LPUSH:
+        stack_byte_push_ptr(stack, (u8 *)&u64_registers[IP->r1], IP->r2);
+        continue;
+    LSTLD:
+        u64_registers[IP->r1] = 0;
+        memcpy(&u64_registers[IP->r1], &stack->data[*addr_register], IP->r2);
+        continue;
+    LSTST:
+        memcpy(&stack->data[*addr_register], &u64_registers[IP->r1], IP->r2);
+        continue;
+
+    FPUSH:
+        stack_byte_push_ptr(stack, (u8 *)&f32_registers[IP->r1], 4);
+        continue;
+    FSTLD:
+        memcpy(&f32_registers[IP->r1], &stack->data[*addr_register], 4);
+        continue;
+    FSTST:
+        memcpy(&stack->data[*addr_register], &f32_registers[IP->r1], 4);
+        continue;
+
+    DPUSH:
+        stack_byte_push_ptr(stack, (u8 *)&f64_registers[IP->r1], 8);
+        continue;
+    DSTLD:
+        memcpy(&f64_registers[IP->r1], &stack->data[*addr_register], 8);
+        continue;
+    DSTST:
+        memcpy(&stack->data[*addr_register], &f64_registers[IP->r1], 8);
+        continue;
+
+        /*
+            HEAP
+        */
+
+    ALLOC:
+        continue;
+    FREE:
+        continue;
+    HEST:
+        continue;
+    HELD:
+        continue;
+
+    IADD:
+        u32_registers[IP->r1] = u32_registers[IP->r2] + u32_registers[IP->r3];
+        continue;
+    ISUB:
+        u32_registers[IP->r1] = u32_registers[IP->r2] - u32_registers[IP->r3];
+        continue;
+    IMULT:
+        u32_registers[IP->r1] = u32_registers[IP->r2] * u32_registers[IP->r3];
+        continue;
+    IDIV:
+        u32_registers[IP->r1] = u32_registers[IP->r2] / u32_registers[IP->r3];
+        continue;
+    IMOD:
+        u32_registers[IP->r1] = u32_registers[IP->r2] % u32_registers[IP->r3];
+        continue;
+    IINC:
+        ++u32_registers[IP->r1];
+        continue;
+    IDEC:
+        --u32_registers[IP->r1];
+        continue;
+    INEG:
+        u32_registers[IP->r1] = -u32_registers[IP->r2];
+        continue;
+
+    LADD:
+        u64_registers[IP->r1] = u64_registers[IP->r2] + u64_registers[IP->r3];
+        continue;
+    LSUB:
+        u64_registers[IP->r1] = u64_registers[IP->r2] - u64_registers[IP->r3];
+        continue;
+    LMULT:
+        u64_registers[IP->r1] = u64_registers[IP->r2] * u64_registers[IP->r3];
+        continue;
+    LDIV:
+        u64_registers[IP->r1] = u64_registers[IP->r2] / u64_registers[IP->r3];
+        continue;
+    LMOD:
+        u64_registers[IP->r1] = u64_registers[IP->r2] % u64_registers[IP->r3];
+        continue;
+    LINC:
+        ++u64_registers[IP->r1];
+        continue;
+    LDEC:
+        --u64_registers[IP->r1];
+        continue;
+    LNEG:
+        u64_registers[IP->r1] = -u64_registers[IP->r2];
+        continue;
+
+    FADD:
+        f32_registers[IP->r1] = f32_registers[IP->r2] + f32_registers[IP->r3];
+        continue;
+    FSUB:
+        f32_registers[IP->r1] = f32_registers[IP->r2] - f32_registers[IP->r3];
+        continue;
+    FMULT:
+        f32_registers[IP->r1] = f32_registers[IP->r2] * f32_registers[IP->r3];
+        continue;
+    FDIV:
+        f32_registers[IP->r1] = f32_registers[IP->r2] / f32_registers[IP->r3];
+        continue;
+    FINC:
+        ++f32_registers[IP->r1];
+        continue;
+    FDEC:
+        --f32_registers[IP->r1];
+        continue;
+    FNEG:
+        f32_registers[IP->r1] = -f32_registers[IP->r2];
+        continue;
+
+    DADD:
+        f64_registers[IP->r1] = f64_registers[IP->r2] + f64_registers[IP->r3];
+        continue;
+    DSUB:
+        f64_registers[IP->r1] = f64_registers[IP->r2] - f64_registers[IP->r3];
+        continue;
+    DMULT:
+        f64_registers[IP->r1] = f64_registers[IP->r2] * f64_registers[IP->r3];
+        continue;
+    DDIV:
+        f64_registers[IP->r1] = f64_registers[IP->r2] / f64_registers[IP->r3];
+        continue;
+    DINC:
+        ++f64_registers[IP->r1];
+        continue;
+    DDEC:
+        --f64_registers[IP->r1];
+        continue;
+    DNEG:
+        f64_registers[IP->r1] = -f64_registers[IP->r2];
+        continue;
+
+    LTOI:
+        u32_registers[IP->r1] = (u32)u64_registers[IP->r2];
+        continue;
+    FTOI:
+        u32_registers[IP->r1] = (u32)f32_registers[IP->r2];
+        continue;
+    DTOI:
+        u32_registers[IP->r1] = (u32)f64_registers[IP->r2];
+        continue;
+    ITOL:
+        u64_registers[IP->r1] = (u64)u32_registers[IP->r2];
+        continue;
+    FTOL:
+        u64_registers[IP->r1] = (u64)f32_registers[IP->r2];
+        continue;
+    DTOL:
+        u64_registers[IP->r1] = (u64)f64_registers[IP->r2];
+        continue;
+    ITOF:
+        f32_registers[IP->r1] = (f32)u32_registers[IP->r2];
+        continue;
+    LTOF:
+        f32_registers[IP->r1] = (f32)u64_registers[IP->r2];
+        continue;
+    DTOF:
+        f32_registers[IP->r1] = (f32)f64_registers[IP->r2];
+        continue;
+    ITOD:
+        f64_registers[IP->r1] = (f64)u32_registers[IP->r2];
+        continue;
+    LTOD:
+        f64_registers[IP->r1] = (f64)u64_registers[IP->r2];
+        continue;
+    FTOD:
+        f64_registers[IP->r1] = (f64)f32_registers[IP->r2];
+        continue;
+
+    JMP:
+        JUMP_TO_ADDR
+        continue;
+
+    IJEZ:
+        if (u32_registers[IP->r1] == 0) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    IJNZ:
+        if (u32_registers[IP->r1] != 0) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    IJEQ:
+        if (u32_registers[IP->r1] == u32_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    IJNQ:
+        if (u32_registers[IP->r1] != u32_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    IJML:
+        if (u32_registers[IP->r1] < u32_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    IJEL:
+        if (u32_registers[IP->r1] <= u32_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    IJMG:
+        if (u32_registers[IP->r1] > u32_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    IJEG:
+        if (u32_registers[IP->r1] >= u32_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+
+    LJEZ:
+        if (u64_registers[IP->r1] == 0) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    LJNZ:
+        if (u64_registers[IP->r1] != 0) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    LJEQ:
+        if (u64_registers[IP->r1] == u64_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    LJNQ:
+        if (u64_registers[IP->r1] != u64_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    LJML:
+        if (u64_registers[IP->r1] < u64_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    LJEL:
+        if (u64_registers[IP->r1] <= u64_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    LJMG:
+        if (u64_registers[IP->r1] > u64_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    LJEG:
+        if (u64_registers[IP->r1] >= u64_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    FJEZ:
+        if (f32_registers[IP->r1] == 0) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    FJNZ:
+        if (f32_registers[IP->r1] != 0) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    FJEQ:
+        if (f32_registers[IP->r1] == f32_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    FJNQ:
+        if (f32_registers[IP->r1] != f32_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    FJML:
+        if (f32_registers[IP->r1] < f32_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    FJEL:
+        if (f32_registers[IP->r1] <= f32_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    FJMG:
+        if (f32_registers[IP->r1] > f32_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    FJEG:
+        if (f32_registers[IP->r1] >= f32_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+
+    DJEZ:
+        if (f64_registers[IP->r1] == 0) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    DJNZ:
+        if (f64_registers[IP->r1] != 0) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    DJEQ:
+        if (f64_registers[IP->r1] == f64_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    DJNQ:
+        if (f64_registers[IP->r1] != f64_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    DJML:
+        if (f64_registers[IP->r1] < f64_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    DJEL:
+        if (f64_registers[IP->r1] <= f64_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    DJMG:
+        if (f64_registers[IP->r1] > f64_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+    DJEG:
+        if (f64_registers[IP->r1] >= f64_registers[IP->r2]) {
+            JUMP_TO_ADDR
+        }
+        continue;
+
+    CALL:
+        if (stack_usize_push((stack_usize *)call_stack, IP - vm->inst_p + 1) ==
+            false)
+            return 1;
+        JUMP_TO_ADDR
+        continue;
+
+    LIBCALL:
+        ((ncvm_lib_function)vm->lib_functions[*addr_register])(thread);
+        continue;
+        //++IP;
     }
-    while_exit:;
+    //while_exit:;
     thread->current_instr_p = IP;
     return 0;
 }

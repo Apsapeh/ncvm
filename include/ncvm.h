@@ -46,15 +46,15 @@ enum _packed OPCODE {
     /*LSRT,    lrd|0..7|8..15|_|Set 32..47 bits to lrd*/
     /*LSRQ,    lrd|0..7|8..15|_|Set 48..63 bits to lrd*/
 
-    IRSI,   /*ir1|v|_|_|Shift ir1 on 'v' count of bits to the right*/
-    ILSI,   /*ir1|v|_|_|Shift ir1 on 'v' count of bits to the left*/
-    LRSI,   /*lr1|v|_|_|Shift lr1 on 'v' count of bits to the right*/
-    LLSI,   /*lr1|v|_|_|Shift lr1 on 'v' count of bits to the left*/
+    IRSI,   /*ird|ir1|v|_|Shift ir1 on 'v' count of bits to the right*/
+    ILSI,   /*ird|ir1|v|_|Shift ir1 on 'v' count of bits to the left*/
+    LRSI,   /*lrd|lr1|v|_|Shift lr1 on 'v' count of bits to the right*/
+    LLSI,   /*lrd|lr1|v|_|Shift lr1 on 'v' count of bits to the left*/
 
-    IRSA,   /*ir1|_|_|a|Shift ir1 on ar bits to the right*/
-    ILSA,   /*ir1|_|_|a|Shift ir1 on ar bits to the left*/
-    LRSA,   /*lr1|_|_|a|Shift lr1 on ar bits to the right*/
-    LLSA,   /*lr1|_|_|a|Shift lr1 on ar bits to the left*/
+    IRSA,   /*ird|ir1|_|a|Shift ir1 on ar bits to the right*/
+    ILSA,   /*ird|ir1|_|a|Shift ir1 on ar bits to the left*/
+    LRSA,   /*lrd|lr1|_|a|Shift lr1 on ar bits to the right*/
+    LLSA,   /*lrd|lr1|_|a|Shift lr1 on ar bits to the left*/
 
     /*==> Static Mem Func <==*/
     /* 32-bit int commands */    
@@ -111,6 +111,7 @@ enum _packed OPCODE {
     IMOD,   /*ird|ir1|ir2|ird = ir1 % ir2*/
     IINC,   /*ird|_|_|ird += 1*/
     IDEC,   /*ird|_|_|ird += 1*/
+    INEG,   /*ird|ir1|_|ird = -ir1*/
 
     /* 64-bit int commands */    
     LADD,   /*lrd|lr1|lr2|lrd = lr1 + lr2*/
@@ -120,6 +121,7 @@ enum _packed OPCODE {
     LMOD,   /*lrd|lr1|lr2|lrd = lr1 % lr2*/
     LINC,   /*lrd|_|_|lrd += 1*/
     LDEC,   /*lrd|_|_|lrd += 1*/
+    LNEG,   /*lrd|lr1|_|lrd = -lr1*/
     
     /* 32-bit float commands */    
     FADD,   /*frd|fr1|fr2|frd = fr1 + fr2*/
@@ -128,6 +130,7 @@ enum _packed OPCODE {
     FDIV,   /*frd|fr1|fr2|frd = fr1 / fr2*/
     FINC,   /*frd|_|_|frd += 1*/
     FDEC,   /*frd|_|_|frd += 1*/
+    FNEG,   /*frd|fr1|_|frd = -fr1*/
 
     /* 64-bit float commands */    
     DADD,   /*drd|dr1|dr2|drd = dr1 + dr2*/
@@ -136,6 +139,7 @@ enum _packed OPCODE {
     DDIV,   /*drd|dr1|dr2|drd = dr1 / dr2*/
     DINC,   /*drd|_|_|drd += 1*/
     DDEC,   /*drd|_|_|drd += 1*/
+    DNEG,   /*drd|dr1|_|drd = -dr1*/
 
 
     /*==> Move between u32, u64, f32, f64 registers <==*/
