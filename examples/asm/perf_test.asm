@@ -1,6 +1,3 @@
-.minus_one <double> (
-    -1.0
-)
 .one_d <double> (
     1.0
 )
@@ -13,7 +10,6 @@ main:
     ISR R1 2           ; int i = 2; 
     DSMLD R0 #one_d    ; double x = 1.0;
     DSMLD R1 #one_d    ; double pi = 1.0;
-    DSMLD R2 #minus_one    ; double -x = 1.0;
 
     ;ISR R2 1
     ISR R4 2
@@ -22,12 +18,11 @@ main:
     while_start:
         IJEG R1 R0 while_end       ;
 
-        DMULT R0 R0 R2 ; x = -x
-
-        ;IMOV R3 R1      
+        DNEG R0 R0 ; x = -x
+   
         ILSI R3 R1 1   ; i * 2
-        IDEC R3
-        ITOD R3 R3
+        IDEC R3        ; i * 2 - 1
+        ITOD R3 R3     ; (double)(i * 2 - 1)
         DDIV R3 R0 R3 ; x / (i * 2 - 1)
         DADD R1 R1 R3 ; pi += x / (i * 2 - 1)
         

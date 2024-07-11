@@ -614,7 +614,7 @@ _export  u8 ncvm_execute_thread_step(ncvm_thread* thread) {
     u64* const addr_register = &thread->u64_registers[0];
     const Instruction* IP = thread->current_instr_p;
 
-    //EXECUTE_COMMAND        
+    /*EXECUTE_COMMAND*/    
 
     while_exit:;
     thread->current_instr_p = IP;
@@ -631,7 +631,7 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
     stack_usize* call_stack = (stack_usize*)thread->call_stack_p;
     ncvm *vm = thread->vm;
 
-    static const void *const labels[120] = {
+    static const void *const labels[124] = {
         &&NOP,    &&STOP,  &&RET,   &&IMOV,  &&LMOV,  &&FMOV,  &&DMOV,
         &&IRCLR,  &&LRCLR, &&FRCLR, &&DRCLR, &&ISR,   &&LSR,   &&IRSI,
         &&ILSI,   &&LRSI,  &&LLSI,  &&IRSA,  &&ILSA,  &&LRSA,  &&LLSA,
@@ -654,13 +654,14 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
 
     u64* const addr_register = &thread->u64_registers[0];
     register const Instruction* IP = thread->current_instr_p-1;
+
     while (true) {
         ++IP;
-        //printf("%d\n", IP->opcode);
+        /* printf("%d\n", IP->opcode); */
         goto *labels[IP->opcode];
 
 
-        // EXECUTE_COMMAND
+        /* EXECUTE_COMMAND */
     NOP:
         continue;
     STOP:
@@ -669,7 +670,7 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
     RET:
         if (stack_usize_pop((stack_usize *)call_stack,
                             (usize *)addr_register) == false)
-            //goto while_exit;
+            /* goto while_exit; */
             break;
         JUMP_TO_ADDR
         continue;
@@ -1165,9 +1166,9 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
     LIBCALL:
         ((ncvm_lib_function)vm->lib_functions[*addr_register])(thread);
         continue;
-        //++IP;
+        /* ++IP; */
     }
-    //while_exit:;
+    /* while_exit:; */
     thread->current_instr_p = IP;
     return 0;
 }

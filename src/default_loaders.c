@@ -14,8 +14,8 @@ _export ncvm_default_lib_loader ncvm_default_lib_loader_init(
     for (i = 0; i < lib_names_count; ++i) {
         lib_handlers[i] = dlopen(lib_names[i], RTLD_LAZY);
         if (lib_handlers[i] == (void*)0) {
-            //fprintf(stderr, "Failed to load library %s\n", lib_names[i]);
-            //exit(1);
+            /* fprintf(stderr, "Failed to load library %s\n", lib_names[i]); */
+            /* exit(1); */
         }
     }
     

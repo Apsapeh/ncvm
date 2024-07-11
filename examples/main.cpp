@@ -17,7 +17,7 @@ const unsigned char* get_next_n_bytes(unsigned long long n, void* data_p) {
 
 
 int main() {
-    //read byte file
+    /* read byte file */
     const char* libs[]= {
         "build/macosx/arm64/release/liblib1.dylib",
     };
@@ -85,7 +85,7 @@ int main() {
     ncvm_thread_free(&thread);
     ncvm_free(&vm);
     ncvm_default_lib_function_loader_free(&lib_loader);
-    //std::cout << "\n\nStatic memory:\n";
-    //for (int i = 0; i < vm.static_mem_size; i++)
-    //    std::cout << "[" << i << "] - " << (int)vm.static_mem_p[i] << "\n";
+    /*std::cout << "\n\nStatic memory:\n";
+    for (int i = 0; i < vm.static_mem_size; i++)
+        std::cout << "[" << i << "] - " << (int)vm.static_mem_p[i] << "\n";*/
 }
