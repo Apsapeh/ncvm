@@ -70,17 +70,6 @@ target("ncvm-bin")
     set_rundir("$(projectdir)")
     set_mode_rules()
 
-target("ncvm-asm-bin")
-    add_packages("extc")
-
-    set_kind("binary")
-    set_languages("c89")
-    add_deps("ncvm-static")
-    add_includedirs("include")
-    add_files("bin/ncvm-asm/*.c")
-    set_basename("ncvm-asm")
-    set_rundir("$(projectdir)")
-    set_mode_rules()
 
 target("ncvm-cpp-example")
     add_packages("extc")

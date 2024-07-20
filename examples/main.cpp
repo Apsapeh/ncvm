@@ -19,7 +19,7 @@ const unsigned char* get_next_n_bytes(unsigned long long n, void* data_p) {
 int main() {
     /* read byte file */
     const char* libs[]= {
-        "build/macosx/arm64/release/liblib1.dylib",
+        "build/linux/i386/release/liblib1.so",
     };
 
     ncvm_default_lib_loader lib_loader = ncvm_default_lib_loader_init(libs, 1);
