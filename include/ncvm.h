@@ -1,5 +1,5 @@
-#ifndef __NCVM
-#define __NCVM
+#ifndef __NCVM_GUARD_H
+#define __NCVM_GUARD_H
 
 #if (defined(__GNUC__) /*&& defined(__clang__)*/)
     #define _packed __attribute__((__packed__))
@@ -220,6 +220,11 @@ enum _packed REGISTER {
 
 
 typedef struct {
+    unsigned int _[2];
+} unsigned_long_long; 
+
+
+typedef struct {
     enum OPCODE opcode;
     unsigned char r1;
     unsigned char r2;
@@ -244,6 +249,14 @@ typedef struct {
     .stack_size=1024*1024*1,\
     .call_stack_size=1024*128\
 }
+
+#define DefaultThreadSettingsANSI(settings)\
+    settings.u32_reg_size=8;\
+    settings.u64_reg_size=8;\
+    settings.f32_reg_size=8;\
+    settings.f64_reg_size=8;\
+    settings.stack_size=1024*1024*1;\
+    settings.call_stack_size=1024*128;
 
 typedef struct {
     Instruction*   inst_p;

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <extc_stack.h>
+#include <extc_rint.h>
 
 #include "util.h"
 
@@ -19,11 +20,13 @@ _export ncvm ncvm_init(
     void*             lib_data_p
 ) {
     ncvm ret;
+    ThreadSettings settings;
+    DefaultThreadSettingsANSI(settings)
+    
     ret.inst_p = inst_p;
     /*ret.inst_count = inst_count;*/
     ret.static_mem_p = static_mem_p;
-
-    ret.main_thread_settings = (ThreadSettings)DefaultThreadSettings;
+    ret.main_thread_settings = settings;
     return ret;
 }
 
@@ -54,6 +57,7 @@ _export ncvm_thread ncvm_create_thread(
     ThreadSettings settings, int* ret_code
 ) {
     ncvm_thread result;
+    u8 st_r;
 
     result.vm = vm;
     result.current_instr_p = si_p;
@@ -66,7 +70,6 @@ _export ncvm_thread ncvm_create_thread(
     }
 
     /* Create stack, registers */
-    u8 st_r;
     result.stack_p = malloc(sizeof(stack_byte));
     *(stack_byte*)result.stack_p = stack_byte_init(settings.stack_size, &st_r);
     if (st_r != 0) {
@@ -603,7 +606,7 @@ _export void ncvm_thread_free(ncvm_thread* thread) {
 
 
 _export  u8 ncvm_execute_thread_step(ncvm_thread* thread) {
-    u32* u32_registers = thread->u32_registers;
+    /*u32* u32_registers = thread->u32_registers;
     u64* u64_registers = thread->u64_registers;
     f32* f32_registers = thread->f32_registers;
     f64* f64_registers = thread->f64_registers;
@@ -612,15 +615,26 @@ _export  u8 ncvm_execute_thread_step(ncvm_thread* thread) {
     ncvm *vm = thread->vm;
 
     u64* const addr_register = &thread->u64_registers[0];
-    const Instruction* IP = thread->current_instr_p;
+    const Instruction* IP = thread->current_instr_p;*/
 
     /*EXECUTE_COMMAND*/    
 
-    while_exit:;
-    thread->current_instr_p = IP;
+    /*while_exit:;
+    thread->current_instr_p = IP;*/
     return 0;
 }
 
+/*#if defined (__GNUC__) || defined (__clang__) || defined (NCVM_USE_JUMPTABLE)*/
+#define __NCVM_USE_JUMPTABLE
+#ifdef __NCVM_USE_JUMPTABLE
+#define INSTRUCTION_END continue;
+#define INSTRUCTION_CASE 
+#define CYCLE_END break;
+#else
+#define INSTRUCTION_END break;
+#define INSTRUCTION_CASE case
+#define CYCLE_END goto while_exit;
+#endif
 
 _export u8 ncvm_execute_thread(ncvm_thread* thread) {
     u32* u32_registers = thread->u32_registers;
@@ -631,6 +645,7 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
     stack_usize* call_stack = (stack_usize*)thread->call_stack_p;
     ncvm *vm = thread->vm;
 
+    #ifdef __NCVM_USE_JUMPTABLE
     static const void *const labels[124] = {
         &&NOP,    &&STOP,  &&RET,   &&IMOV,  &&LMOV,  &&FMOV,  &&DMOV,
         &&IRCLR,  &&LRCLR, &&FRCLR, &&DRCLR, &&ISR,   &&LSR,   &&IRSI,
@@ -651,6 +666,7 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
         &&DJEQ,   &&DJNQ,  &&DJML,  &&DJEL,  &&DJMG,  &&DJEG,  &&CALL,
         &&LIBCALL
     };
+    #endif
 
     u64* const addr_register = &thread->u64_registers[0];
     register const Instruction* IP = thread->current_instr_p-1;
@@ -658,517 +674,528 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
     while (true) {
         ++IP;
         /* printf("%d\n", IP->opcode); */
-        goto *labels[IP->opcode];
+        #ifdef __NCVM_USE_JUMPTABLE
+            goto *labels[IP->opcode];
+        #else
+            switch (IP->opcode) {
+        #endif
 
 
         /* EXECUTE_COMMAND */
-    NOP:
-        continue;
-    STOP:
+    INSTRUCTION_CASE NOP:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE STOP:
         /* TODO: add regisetr */
-        break;
-    RET:
+        CYCLE_END;
+    INSTRUCTION_CASE RET:
         if (stack_usize_pop((stack_usize *)call_stack,
                             (usize *)addr_register) == false)
             /* goto while_exit; */
-            break;
+            /*break;*/
+            CYCLE_END
         JUMP_TO_ADDR
-        continue;
+        INSTRUCTION_END;
 
-    IMOV:
+    INSTRUCTION_CASE IMOV:
         u32_registers[IP->r1] = u32_registers[IP->r2];
-        continue;
-    LMOV:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LMOV:
         u64_registers[IP->r1] = u64_registers[IP->r2];
-        continue;
-    FMOV:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FMOV:
         f32_registers[IP->r1] = f32_registers[IP->r2];
-        continue;
-    DMOV:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DMOV:
         f64_registers[IP->r1] = f64_registers[IP->r2];
-        continue;
+        INSTRUCTION_END;
 
-    IRCLR:
+    INSTRUCTION_CASE IRCLR:
         u32_registers[IP->r1] = 0;
-        continue;
-    LRCLR:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LRCLR:
         u64_registers[IP->r1] = 0;
-        continue;
-    FRCLR:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FRCLR:
         f32_registers[IP->r1] = 0;
-        continue;
-    DRCLR:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DRCLR:
         f64_registers[IP->r1] = 0;
-        continue;
+        INSTRUCTION_END;
 
-    ISR:
+    INSTRUCTION_CASE ISR:
         *((u8 *)(u32_registers + IP->r1)) = IP->r2;
         *((u8 *)(u32_registers + IP->r1) + 1) = IP->r3;
-        continue;
-    LSR:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LSR:
         *((u8 *)(u64_registers + IP->r1)) = IP->r2;
         *((u8 *)(u64_registers + IP->r1) + 1) = IP->r3;
-        continue;
+        INSTRUCTION_END;
 
         /*ISRF:
             *((u8*)(u32_registers+IP->r1)) = IP->r2;
             *((u8*)(u32_registers+IP->r1)+1) = IP->r3;
-            continue;
+            INSTRUCTION_END;
         ISRS:
             *((u8*)(u32_registers+IP->r1)+2) = IP->r2;
             *((u8*)(u32_registers+IP->r1)+3) = IP->r3;
-            continue;
+            INSTRUCTION_END;
         LSRF:
             *((u8*)(u64_registers+IP->r1)) = IP->r2;
             *((u8*)(u64_registers+IP->r1)+1) = IP->r3;
-            continue;
+            INSTRUCTION_END;
         LSRS:
             *((u8*)(u64_registers+IP->r1)+2) = IP->r2;
             *((u8*)(u64_registers+IP->r1)+3) = IP->r3;
-            continue;
+            INSTRUCTION_END;
         LSRT:
             *((u8*)(u64_registers+IP->r1)+4) = IP->r2;
             *((u8*)(u64_registers+IP->r1)+5) = IP->r3;
-            continue;
+            INSTRUCTION_END;
         LSRQ:
             *((u8*)(u64_registers+IP->r1)+6) = IP->r2;
             *((u8*)(u64_registers+IP->r1)+7) = IP->r3;
-            continue;*/
+            INSTRUCTION_END;*/
 
-    IRSI:
+    INSTRUCTION_CASE IRSI:
         u32_registers[IP->r1] = u32_registers[IP->r2] >> IP->r3;
-        continue;
-    ILSI:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE ILSI:
         u32_registers[IP->r1] = u32_registers[IP->r2] << IP->r3;
-        continue;
-    LRSI:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LRSI:
         u64_registers[IP->r1] = u64_registers[IP->r2] >> IP->r3;
-        continue;
-    LLSI:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LLSI:
         u64_registers[IP->r1] = u64_registers[IP->r2] << IP->r3;
-        continue;
+        INSTRUCTION_END;
 
-    IRSA:
+    INSTRUCTION_CASE IRSA:
         u32_registers[IP->r1] = u32_registers[IP->r2] >> *addr_register;
-        continue;
-    ILSA:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE ILSA:
         u32_registers[IP->r1] = u32_registers[IP->r2] << *addr_register;
-        continue;
-    LRSA:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LRSA:
         u64_registers[IP->r1] = u64_registers[IP->r2] >> *addr_register;
-        continue;
-    LLSA:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LLSA:
         u64_registers[IP->r1] = u64_registers[IP->r2] << *addr_register;
-        continue;
+        INSTRUCTION_END;
 
-    ISMLD:
+    INSTRUCTION_CASE ISMLD:
         u32_registers[IP->r1] = 0;
         memcpy(&u32_registers[IP->r1], &vm->static_mem_p[*addr_register],
                IP->r2);
-        continue;
-    ISMST:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE ISMST:
         memcpy(&vm->static_mem_p[*addr_register], &u32_registers[IP->r1],
                IP->r2);
-        continue;
+        INSTRUCTION_END;
 
-    LSMLD:
+    INSTRUCTION_CASE LSMLD:
         u64_registers[IP->r1] = 0;
         memcpy(&u64_registers[IP->r1], &vm->static_mem_p[*addr_register],
                IP->r2);
-        continue;
-    LSMST:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LSMST:
         memcpy(&vm->static_mem_p[*addr_register], &u64_registers[IP->r1],
                IP->r2);
-        continue;
+        INSTRUCTION_END;
 
-    FSMLD:
+    INSTRUCTION_CASE FSMLD:
         memcpy(&f32_registers[IP->r1], &vm->static_mem_p[*addr_register], 4);
-        continue;
-    FSMST:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FSMST:
         memcpy(&vm->static_mem_p[*addr_register], &f32_registers[IP->r1], 4);
-        continue;
+        INSTRUCTION_END;
 
-    DSMLD:
+    INSTRUCTION_CASE DSMLD:
         memcpy(&f64_registers[IP->r1], &vm->static_mem_p[*addr_register], 8);
-        continue;
-    DSMST:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DSMST:
         memcpy(&vm->static_mem_p[*addr_register], &f64_registers[IP->r1], 8);
-        continue;
+        INSTRUCTION_END;
 
-    POPI:
+    INSTRUCTION_CASE POPI:
         stack_byte_pop_ptr(stack, IP->r1 + (IP->r2 * 256) + (IP->r3 * 65536),
                            NULL);
-        continue;
-    POPA:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE POPA:
         stack_byte_pop_ptr(stack, *addr_register, NULL);
-        continue;
+        INSTRUCTION_END;
 
-    IPUSH:
+    INSTRUCTION_CASE IPUSH:
         stack_byte_push_ptr(stack, (u8 *)&u32_registers[IP->r1], IP->r2);
-        continue;
-    ISTLD:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE ISTLD:
         u32_registers[IP->r1] = 0;
         memcpy(&u32_registers[IP->r1], &stack->data[*addr_register], IP->r2);
-        continue;
-    ISTST:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE ISTST:
         memcpy(&stack->data[*addr_register], &u32_registers[IP->r1], IP->r2);
-        continue;
+        INSTRUCTION_END;
 
-    LPUSH:
+    INSTRUCTION_CASE LPUSH:
         stack_byte_push_ptr(stack, (u8 *)&u64_registers[IP->r1], IP->r2);
-        continue;
-    LSTLD:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LSTLD:
         u64_registers[IP->r1] = 0;
         memcpy(&u64_registers[IP->r1], &stack->data[*addr_register], IP->r2);
-        continue;
-    LSTST:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LSTST:
         memcpy(&stack->data[*addr_register], &u64_registers[IP->r1], IP->r2);
-        continue;
+        INSTRUCTION_END;
 
-    FPUSH:
+    INSTRUCTION_CASE FPUSH:
         stack_byte_push_ptr(stack, (u8 *)&f32_registers[IP->r1], 4);
-        continue;
-    FSTLD:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FSTLD:
         memcpy(&f32_registers[IP->r1], &stack->data[*addr_register], 4);
-        continue;
-    FSTST:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FSTST:
         memcpy(&stack->data[*addr_register], &f32_registers[IP->r1], 4);
-        continue;
+        INSTRUCTION_END;
 
-    DPUSH:
+    INSTRUCTION_CASE DPUSH:
         stack_byte_push_ptr(stack, (u8 *)&f64_registers[IP->r1], 8);
-        continue;
-    DSTLD:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DSTLD:
         memcpy(&f64_registers[IP->r1], &stack->data[*addr_register], 8);
-        continue;
-    DSTST:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DSTST:
         memcpy(&stack->data[*addr_register], &f64_registers[IP->r1], 8);
-        continue;
+        INSTRUCTION_END;
 
         /*
             HEAP
         */
 
-    ALLOC:
-        continue;
-    FREE:
-        continue;
-    HEST:
-        continue;
-    HELD:
-        continue;
+    INSTRUCTION_CASE ALLOC:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FREE:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE HEST:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE HELD:
+        INSTRUCTION_END;
 
-    IADD:
+    INSTRUCTION_CASE IADD:
         u32_registers[IP->r1] = u32_registers[IP->r2] + u32_registers[IP->r3];
-        continue;
-    ISUB:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE ISUB:
         u32_registers[IP->r1] = u32_registers[IP->r2] - u32_registers[IP->r3];
-        continue;
-    IMULT:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE IMULT:
         u32_registers[IP->r1] = u32_registers[IP->r2] * u32_registers[IP->r3];
-        continue;
-    IDIV:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE IDIV:
         u32_registers[IP->r1] = u32_registers[IP->r2] / u32_registers[IP->r3];
-        continue;
-    IMOD:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE IMOD:
         u32_registers[IP->r1] = u32_registers[IP->r2] % u32_registers[IP->r3];
-        continue;
-    IINC:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE IINC:
         ++u32_registers[IP->r1];
-        continue;
-    IDEC:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE IDEC:
         --u32_registers[IP->r1];
-        continue;
-    INEG:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE INEG:
         u32_registers[IP->r1] = -u32_registers[IP->r2];
-        continue;
+        INSTRUCTION_END;
 
-    LADD:
+    INSTRUCTION_CASE LADD:
         u64_registers[IP->r1] = u64_registers[IP->r2] + u64_registers[IP->r3];
-        continue;
-    LSUB:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LSUB:
         u64_registers[IP->r1] = u64_registers[IP->r2] - u64_registers[IP->r3];
-        continue;
-    LMULT:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LMULT:
         u64_registers[IP->r1] = u64_registers[IP->r2] * u64_registers[IP->r3];
-        continue;
-    LDIV:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LDIV:
         u64_registers[IP->r1] = u64_registers[IP->r2] / u64_registers[IP->r3];
-        continue;
-    LMOD:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LMOD:
         u64_registers[IP->r1] = u64_registers[IP->r2] % u64_registers[IP->r3];
-        continue;
-    LINC:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LINC:
         ++u64_registers[IP->r1];
-        continue;
-    LDEC:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LDEC:
         --u64_registers[IP->r1];
-        continue;
-    LNEG:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LNEG:
         u64_registers[IP->r1] = -u64_registers[IP->r2];
-        continue;
+        INSTRUCTION_END;
 
-    FADD:
+    INSTRUCTION_CASE FADD:
         f32_registers[IP->r1] = f32_registers[IP->r2] + f32_registers[IP->r3];
-        continue;
-    FSUB:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FSUB:
         f32_registers[IP->r1] = f32_registers[IP->r2] - f32_registers[IP->r3];
-        continue;
-    FMULT:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FMULT:
         f32_registers[IP->r1] = f32_registers[IP->r2] * f32_registers[IP->r3];
-        continue;
-    FDIV:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FDIV:
         f32_registers[IP->r1] = f32_registers[IP->r2] / f32_registers[IP->r3];
-        continue;
-    FINC:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FINC:
         ++f32_registers[IP->r1];
-        continue;
-    FDEC:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FDEC:
         --f32_registers[IP->r1];
-        continue;
-    FNEG:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FNEG:
         f32_registers[IP->r1] = -f32_registers[IP->r2];
-        continue;
+        INSTRUCTION_END;
 
-    DADD:
+    INSTRUCTION_CASE DADD:
         f64_registers[IP->r1] = f64_registers[IP->r2] + f64_registers[IP->r3];
-        continue;
-    DSUB:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DSUB:
         f64_registers[IP->r1] = f64_registers[IP->r2] - f64_registers[IP->r3];
-        continue;
-    DMULT:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DMULT:
         f64_registers[IP->r1] = f64_registers[IP->r2] * f64_registers[IP->r3];
-        continue;
-    DDIV:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DDIV:
         f64_registers[IP->r1] = f64_registers[IP->r2] / f64_registers[IP->r3];
-        continue;
-    DINC:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DINC:
         ++f64_registers[IP->r1];
-        continue;
-    DDEC:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DDEC:
         --f64_registers[IP->r1];
-        continue;
-    DNEG:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DNEG:
         f64_registers[IP->r1] = -f64_registers[IP->r2];
-        continue;
+        INSTRUCTION_END;
 
-    LTOI:
+    INSTRUCTION_CASE LTOI:
         u32_registers[IP->r1] = (u32)u64_registers[IP->r2];
-        continue;
-    FTOI:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FTOI:
         u32_registers[IP->r1] = (u32)f32_registers[IP->r2];
-        continue;
-    DTOI:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DTOI:
         u32_registers[IP->r1] = (u32)f64_registers[IP->r2];
-        continue;
-    ITOL:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE ITOL:
         u64_registers[IP->r1] = (u64)u32_registers[IP->r2];
-        continue;
-    FTOL:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FTOL:
         u64_registers[IP->r1] = (u64)f32_registers[IP->r2];
-        continue;
-    DTOL:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DTOL:
         u64_registers[IP->r1] = (u64)f64_registers[IP->r2];
-        continue;
-    ITOF:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE ITOF:
         f32_registers[IP->r1] = (f32)u32_registers[IP->r2];
-        continue;
-    LTOF:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LTOF:
         f32_registers[IP->r1] = (f32)u64_registers[IP->r2];
-        continue;
-    DTOF:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DTOF:
         f32_registers[IP->r1] = (f32)f64_registers[IP->r2];
-        continue;
-    ITOD:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE ITOD:
         f64_registers[IP->r1] = (f64)u32_registers[IP->r2];
-        continue;
-    LTOD:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LTOD:
         f64_registers[IP->r1] = (f64)u64_registers[IP->r2];
-        continue;
-    FTOD:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FTOD:
         f64_registers[IP->r1] = (f64)f32_registers[IP->r2];
-        continue;
+        INSTRUCTION_END;
 
-    JMP:
+    INSTRUCTION_CASE JMP:
         JUMP_TO_ADDR
-        continue;
+        INSTRUCTION_END;
 
-    IJEZ:
+    INSTRUCTION_CASE IJEZ:
         if (u32_registers[IP->r1] == 0) {
             JUMP_TO_ADDR
         }
-        continue;
-    IJNZ:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE IJNZ:
         if (u32_registers[IP->r1] != 0) {
             JUMP_TO_ADDR
         }
-        continue;
-    IJEQ:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE IJEQ:
         if (u32_registers[IP->r1] == u32_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    IJNQ:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE IJNQ:
         if (u32_registers[IP->r1] != u32_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    IJML:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE IJML:
         if (u32_registers[IP->r1] < u32_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    IJEL:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE IJEL:
         if (u32_registers[IP->r1] <= u32_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    IJMG:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE IJMG:
         if (u32_registers[IP->r1] > u32_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    IJEG:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE IJEG:
         if (u32_registers[IP->r1] >= u32_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
+        INSTRUCTION_END;
 
-    LJEZ:
+    INSTRUCTION_CASE LJEZ:
         if (u64_registers[IP->r1] == 0) {
             JUMP_TO_ADDR
         }
-        continue;
-    LJNZ:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LJNZ:
         if (u64_registers[IP->r1] != 0) {
             JUMP_TO_ADDR
         }
-        continue;
-    LJEQ:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LJEQ:
         if (u64_registers[IP->r1] == u64_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    LJNQ:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LJNQ:
         if (u64_registers[IP->r1] != u64_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    LJML:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LJML:
         if (u64_registers[IP->r1] < u64_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    LJEL:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LJEL:
         if (u64_registers[IP->r1] <= u64_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    LJMG:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LJMG:
         if (u64_registers[IP->r1] > u64_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    LJEG:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE LJEG:
         if (u64_registers[IP->r1] >= u64_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    FJEZ:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FJEZ:
         if (f32_registers[IP->r1] == 0) {
             JUMP_TO_ADDR
         }
-        continue;
-    FJNZ:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FJNZ:
         if (f32_registers[IP->r1] != 0) {
             JUMP_TO_ADDR
         }
-        continue;
-    FJEQ:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FJEQ:
         if (f32_registers[IP->r1] == f32_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    FJNQ:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FJNQ:
         if (f32_registers[IP->r1] != f32_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    FJML:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FJML:
         if (f32_registers[IP->r1] < f32_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    FJEL:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FJEL:
         if (f32_registers[IP->r1] <= f32_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    FJMG:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FJMG:
         if (f32_registers[IP->r1] > f32_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    FJEG:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE FJEG:
         if (f32_registers[IP->r1] >= f32_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
+        INSTRUCTION_END;
 
-    DJEZ:
+    INSTRUCTION_CASE DJEZ:
         if (f64_registers[IP->r1] == 0) {
             JUMP_TO_ADDR
         }
-        continue;
-    DJNZ:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DJNZ:
         if (f64_registers[IP->r1] != 0) {
             JUMP_TO_ADDR
         }
-        continue;
-    DJEQ:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DJEQ:
         if (f64_registers[IP->r1] == f64_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    DJNQ:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DJNQ:
         if (f64_registers[IP->r1] != f64_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    DJML:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DJML:
         if (f64_registers[IP->r1] < f64_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    DJEL:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DJEL:
         if (f64_registers[IP->r1] <= f64_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    DJMG:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DJMG:
         if (f64_registers[IP->r1] > f64_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
-    DJEG:
+        INSTRUCTION_END;
+    INSTRUCTION_CASE DJEG:
         if (f64_registers[IP->r1] >= f64_registers[IP->r2]) {
             JUMP_TO_ADDR
         }
-        continue;
+        INSTRUCTION_END;
 
-    CALL:
+    INSTRUCTION_CASE CALL:
         if (stack_usize_push((stack_usize *)call_stack, IP - vm->inst_p + 1) ==
             false)
             return 1;
         JUMP_TO_ADDR
-        continue;
+        INSTRUCTION_END;
 
-    LIBCALL:
+    INSTRUCTION_CASE LIBCALL:
         ((ncvm_lib_function)vm->lib_functions[*addr_register])(thread);
-        continue;
+        INSTRUCTION_END;
         /* ++IP; */
+        #ifndef __NCVM_USE_JUMPTABLE
+        }
+        #endif
     }
-    /* while_exit:; */
+        
+    #ifndef __NCVM_USE_JUMPTABLE
+    while_exit:;
+    #endif
     thread->current_instr_p = IP;
     return 0;
 }

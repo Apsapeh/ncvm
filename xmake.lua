@@ -10,9 +10,11 @@ function set_mode_rules()
     elseif is_mode("release") then
         set_symbols("hidden")
         --set_fpmodels("fast")
-        set_optimize("aggressive")
+        --set_optimize("aggressive")
+        set_optimize("faster")
         set_strip("all")
     end
+    set_warnings("pedantic")
 end
 
 
@@ -20,7 +22,7 @@ add_rules("mode.debug", "mode.release")
 
 add_repositories("apsapeh-repo https://github.com/Apsapeh/xmake-repo.git")
 
-add_requires("extc 67103eabdcaec5186e18a0dfad6cedf33074d387")
+add_requires("extc 9df07382effe0c59722bf67c7ccae7d2e42ca904")
 
 option("big_endian")
 option("default_loaders")

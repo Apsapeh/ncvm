@@ -2,7 +2,7 @@
 #include <ncvm.h>
 
 #include <fstream>
-#include <unordered_map>
+//#include <unordered_map>
 
 std::ifstream file("examples/asm/perf_test.ncvm", std::ios::binary);
 
@@ -19,7 +19,7 @@ const unsigned char* get_next_n_bytes(unsigned long long n, void* data_p) {
 int main() {
     /* read byte file */
     const char* libs[]= {
-        "build/linux/i386/release/liblib1.so",
+        "build/linux/x86_64/release/liblib1.so",
     };
 
     ncvm_default_lib_loader lib_loader = ncvm_default_lib_loader_init(libs, 1);
@@ -35,7 +35,9 @@ int main() {
     );
     file.close();
 
-    ncvm_thread thread = ncvm_create_thread(&vm, vm.inst_p, NULL, 0, DefaultThreadSettings, NULL);
+    ThreadSettings settings;
+    DefaultThreadSettingsANSI(settings);
+    ncvm_thread thread = ncvm_create_thread(&vm, vm.inst_p, NULL, 0, settings, NULL);
     
 
     /*std::unordered_map<int, double> times;
