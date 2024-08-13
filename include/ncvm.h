@@ -219,9 +219,84 @@ enum _packed REGISTER {
 };
 
 
-typedef struct {
+/*typedef struct {
     unsigned int _[2];
-} unsigned_long_long; 
+} unsigned_long_long; */
+
+/*
+    if long 64 bit - long
+    if >C99 - long long
+    else struct {unsigned int _[2];}
+*/
+#define NCVM_PURE_C89
+#ifndef NCVM_PURE_C89
+    typedef unsigned long long unsigned_long_long;
+    #define unsigned_long_long_add(a, b) a + b
+    #define unsigned_long_long_sub(a, b) a - b
+    #define unsigned_long_long_mul(a, b) a * b
+    #define unsigned_long_long_div(a, b) a / b
+    #define unsigned_long_long_mod(a, b) a % b
+   
+    #define unsigned_long_long_add_set(a, b) a += b
+    #define unsigned_long_long_sub_set(a, b) a -= b
+    #define unsigned_long_long_mul_set(a, b) a *= b
+    #define unsigned_long_long_div_set(a, b) a /= b
+    #define unsigned_long_long_mod_set(a, b) a %= b    
+    
+#elif defined(__LP64__) || defined(_LP64) || defined(_WIN64) || defined(__x86_64__) || defined(__aarch64__) || defined(__amd64__) || defined(__arm64__) || defined(__ppc64__) || defined(__sparc64__) || defined(__mips64__) || defined(__s390x__) || defined(__ia64__) || defined(__alpha__) || defined(__powerpc64__) || defined(__mips64__) || defined(__mips64) || defined(__mips64__)
+    /*typedef unsigned long unsigned_long_long;
+    #define unsigned_long_long_add(a, b) a + b
+    #define unsigned_long_long_sub(a, b) a - b
+    #define unsigned_long_long_mul(a, b) a * b
+    #define unsigned_long_long_div(a, b) a / b
+    #define unsigned_long_long_mod(a, b) a % b 
+    
+    #define unsigned_long_long_add_set(a, b) a += b
+    #define unsigned_long_long_sub_set(a, b) a -= b
+    #define unsigned_long_long_mul_set(a, b) a *= b
+    #define unsigned_long_long_div_set(a, b) a /= b
+    #define unsigned_long_long_mod_set(a, b) a %= b
+#else*/
+    typedef struct {
+        unsigned int _[2];
+    } unsigned_long_long;
+    /*#define unsigned_long_long_add(a, b) #error "On 32-bit platforms, you can use only unsigned_long_long_add_set"
+    #define unsigned_long_long_sub(a, b) #error "On 32-bit platforms, you can use only unsigned_long_long_sub_set"
+    #define unsigned_long_long_mul(a, b) #error "On 32-bit platforms, you can use only unsigned_long_long_mul_set"
+    #define unsigned_long_long_div(a, b) #error "On 32-bit platforms, you can use only unsigned_long_long_div_set"
+    #define unsigned_long_long_mod(a, b) #error "On 32-bit platforms, you can use only unsigned_long_long_mod_set"
+    
+    #define unsigned_long_long_add_set(a, b) if (a._[0] + b._[0] < a._[0]) a._[1]++; a._[0] += b._[0]; a._[1] += b._[1]
+    #define unsigned_long_long_sub_set(a, b) if (a._[0] < b._[0]) a._[1]--; a._[0] -= b._[0]; a._[1] -= b._[1]
+    #define unsigned_long_long_mul_set(a, b) 
+    #define unsigned_long_long_div_set(a, b)
+    #define unsigned_long_long_mod_set(a, b) */
+    #define unsigned_long_long_to_usize(a) a._[0]
+    #define unsigned_long_long_clear(a) a._[0] = 0; a._[1] = 0
+    #define unsigned_long_long_inc(a) if (++a._[0] == 0) ++a._[1]
+    #define unsigned_long_long_dec(a) if (--a._[0] == 0xffffffff) --a._[1]
+    #define unsigned_long_long_is_zero(a) (a._[0] == 0 && a._[1] == 0)
+    #define unsigned_long_long_is_not_zero(a) (a._[0] != 0 || a._[1] != 0)
+    #define unsigned_long_long_is_equal(a, b) (a._[0] == b._[0] && a._[1] == b._[1])
+    #define unsigned_long_long_is_not_equal(a, b) (a._[0] != b._[0] || a._[1] != b._[1])
+    #define unsigned_long_long_is_less(a, b) (a._[1] < b._[1] || (a._[1] == b._[1] && a._[0] < b._[0]))
+    #define unsigned_long_long_is_greater(a, b) (a._[1] > b._[1] || (a._[1] == b._[1] && a._[0] > b._[0]))
+    #define unsigned_long_long_is_less_or_equal(a, b) (a._[1] < b._[1] || (a._[1] == b._[1] && a._[0] <= b._[0]))
+    #define unsigned_long_long_is_greater_or_equal(a, b) (a._[1] > b._[1] || (a._[1] == b._[1] && a._[0] >= b._[0]))
+
+    #define unsigned_long_long_add_to(to, a, b) to._[0] = a._[0] + b._[0]; to._[1] = a._[1] + b._[1]; if (a._[0] + b._[0] < a._[0]) to._[1]++
+    #define unsigned_long_long_sub_to(to, a, b) to._[0] = a._[0] - b._[0]; to._[1] = a._[1] - b._[1]; if (a._[0] < b._[0]) to._[1]--
+
+    #define unsigned_long_long_mod_to(to, a, b)
+
+    #define unsigned_long_long_neg_to(to, a) to._[0] = 0 - a._[0]; to._[1] = 0 - a._[1]
+    #define unsigned_long_long_lshift_to(to, a, on) if (on > 32) {to._[0] = a._[1] << (on - 32);} else {to._[0] = a._[0] << on | a._[1] >> (32 - on); to._[1] = a._[1] << on;}
+    #define unsigned_long_long_rshift_to(to, a, on) to._[0] = a._[0] >> on; to._[1] = a._[1] >> on
+    
+    #define __NCVM_SOFTWARE_U64_MATH
+    unsigned_long_long __software_u64_math_mul(unsigned_long_long a, unsigned_long_long b);
+    /*unsigned_long_long __software_math_unsigned_long_long_div(unsigned_long_long a, unsigned_long_long b);*/
+#endif
 
 
 typedef struct {
@@ -273,7 +348,7 @@ typedef struct {
     void* stack_p;
     void* call_stack_p;
     unsigned int*       u32_registers;
-    unsigned long long* u64_registers;
+    unsigned_long_long* u64_registers;
     float*              f32_registers;
     double*             f64_registers;
 } ncvm_thread;
@@ -330,7 +405,7 @@ _export ncvm ncvm_loadBytecodeData(
     @return VM
 */
 _export ncvm ncvm_loadBytecodeStream(
-    const unsigned char* (*get_next_n_bytes)(const unsigned long long n, void* const data_p),
+    const unsigned char* (*get_next_n_bytes)(const unsigned long n, void* const data_p),
     void*             data_p,
     ncvm_lib_function (*get_lib_function)(const char* name, void* lib_data_p),
     void*             lib_data_p,

@@ -11,7 +11,7 @@ typedef struct {
 } dataStream; 
 
 const unsigned char* get_next_n_bytes(
-    unsigned long long n, void* data_p
+    unsigned long n, void* data_p
 ) {
     dataStream* stream = (dataStream*)data_p;
     if (stream->data_size < n) {
@@ -61,7 +61,7 @@ _export ncvm ncvm_loadBytecodeData(
 
 /* Load  */
 _export ncvm ncvm_loadBytecodeStream(
-    const unsigned char* (*get_next_n_bytes)(const unsigned long long n, void* const data_p),
+    const unsigned char* (*get_next_n_bytes)(const unsigned long n, void* const data_p),
     void*             data_p,
     ncvm_lib_function (*get_lib_function)(const char* name, void* lib_data_p),
     void*             lib_data_p,
@@ -71,7 +71,7 @@ _export ncvm ncvm_loadBytecodeStream(
     const unsigned char* tmp;
     unsigned int version;
     unsigned char u32_count, u64_count, f32_count, f64_count;
-    unsigned long long stack_size, call_stack_size, lib_functions_count, lib_functions_size, static_mem_size, block_size;
+    unsigned long stack_size, call_stack_size, lib_functions_count, lib_functions_size, static_mem_size, block_size;
     const char* fn_names;
     const unsigned char* static_memory;
     Instruction* instructions;
@@ -92,12 +92,12 @@ _export ncvm ncvm_loadBytecodeStream(
     load_field(u64_count, unsigned char, 1)
     load_field(f32_count, unsigned char, 1)
     load_field(f64_count, unsigned char, 1)
-    load_field(stack_size,          unsigned long long, 8)
-    load_field(call_stack_size,     unsigned long long, 8)
-    load_field(lib_functions_count, unsigned long long, 8)
-    load_field(lib_functions_size,  unsigned long long, 8)
-    load_field(static_mem_size,     unsigned long long, 8)
-    load_field(block_size,          unsigned long long, 8)
+    load_field(stack_size,          unsigned long, 8)
+    load_field(call_stack_size,     unsigned long, 8)
+    load_field(lib_functions_count, unsigned long, 8)
+    load_field(lib_functions_size,  unsigned long, 8)
+    load_field(static_mem_size,     unsigned long, 8)
+    load_field(block_size,          unsigned long, 8)
 
     fn_names = (const char*)get_next_n_bytes(lib_functions_size, data_p); \
     if (tmp == (void*)0) { \

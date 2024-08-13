@@ -92,13 +92,13 @@ _export ncvm_thread ncvm_create_thread(
 
     /* Alloc registers */
     result.u32_registers = (u32*)malloc(sizeof(u32) * settings.u32_reg_size);
-    result.u64_registers = (u64*)malloc(sizeof(u64) * settings.u64_reg_size+1);
+    result.u64_registers = (unsigned_long_long*)malloc(sizeof(unsigned_long_long) * (settings.u64_reg_size+1));
     result.f32_registers = (f32*)malloc(sizeof(f32) * settings.f32_reg_size);
     result.f64_registers = (f64*)malloc(sizeof(f64) * settings.f64_reg_size);
     
     /* Clear registers */
     memset(result.u32_registers, 0, sizeof(u32) * settings.u32_reg_size);
-    memset(result.u64_registers, 0, sizeof(u64) * settings.u64_reg_size);
+    memset(result.u64_registers, 0, sizeof(unsigned_long_long) * (settings.u64_reg_size+1));
     memset(result.f32_registers, 0, sizeof(f32) * settings.f32_reg_size);
     memset(result.f64_registers, 0, sizeof(f64) * settings.f64_reg_size);
 
@@ -120,7 +120,7 @@ _export void ncvm_thread_free(ncvm_thread* thread) {
 
 #include <stdio.h>
 
-#define JUMP_TO_ADDR IP = &vm->inst_p[*addr_register] - 1;
+#define JUMP_TO_ADDR IP = &vm->inst_p[unsigned_long_long_to_usize((*addr_register))] - 1;
 #define EXECUTE_COMMAND\
     switch (IP->opcode) {\
         case STOP:\
@@ -625,7 +625,7 @@ _export  u8 ncvm_execute_thread_step(ncvm_thread* thread) {
 }
 
 /*#if defined (__GNUC__) || defined (__clang__) || defined (NCVM_USE_JUMPTABLE)*/
-#define __NCVM_USE_JUMPTABLE
+/*#define __NCVM_USE_JUMPTABLE*/
 #ifdef __NCVM_USE_JUMPTABLE
 #define INSTRUCTION_END continue;
 #define INSTRUCTION_CASE 
@@ -636,9 +636,11 @@ _export  u8 ncvm_execute_thread_step(ncvm_thread* thread) {
 #define CYCLE_END goto while_exit;
 #endif
 
+#define DEREF_ADDR unsigned_long_long_to_usize((*addr_register))
+
 _export u8 ncvm_execute_thread(ncvm_thread* thread) {
     u32* u32_registers = thread->u32_registers;
-    u64* u64_registers = thread->u64_registers;
+    unsigned_long_long* u64_registers = thread->u64_registers;
     f32* f32_registers = thread->f32_registers;
     f64* f64_registers = thread->f64_registers;
     stack_byte* stack = (stack_byte*)thread->stack_p;
@@ -668,7 +670,7 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
     };
     #endif
 
-    u64* const addr_register = &thread->u64_registers[0];
+    unsigned_long_long* const addr_register = &thread->u64_registers[0];
     register const Instruction* IP = thread->current_instr_p-1;
 
     while (true) {
@@ -713,7 +715,8 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
         u32_registers[IP->r1] = 0;
         INSTRUCTION_END;
     INSTRUCTION_CASE LRCLR:
-        u64_registers[IP->r1] = 0;
+        /*u64_registers[IP->r1] = 0;*/
+        unsigned_long_long_clear(u64_registers[IP->r1]);
         INSTRUCTION_END;
     INSTRUCTION_CASE FRCLR:
         f32_registers[IP->r1] = 0;
@@ -763,57 +766,58 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
         u32_registers[IP->r1] = u32_registers[IP->r2] << IP->r3;
         INSTRUCTION_END;
     INSTRUCTION_CASE LRSI:
-        u64_registers[IP->r1] = u64_registers[IP->r2] >> IP->r3;
+        unsigned_long_long_rshift_to(u64_registers[IP->r1], u64_registers[IP->r1], IP->r3);
         INSTRUCTION_END;
     INSTRUCTION_CASE LLSI:
-        u64_registers[IP->r1] = u64_registers[IP->r2] << IP->r3;
+        unsigned_long_long_lshift_to(u64_registers[IP->r1], u64_registers[IP->r1], IP->r3);
         INSTRUCTION_END;
 
     INSTRUCTION_CASE IRSA:
-        u32_registers[IP->r1] = u32_registers[IP->r2] >> *addr_register;
+        u32_registers[IP->r1] = u32_registers[IP->r2] >> DEREF_ADDR;
         INSTRUCTION_END;
     INSTRUCTION_CASE ILSA:
-        u32_registers[IP->r1] = u32_registers[IP->r2] << *addr_register;
+        u32_registers[IP->r1] = u32_registers[IP->r2] << DEREF_ADDR;
         INSTRUCTION_END;
     INSTRUCTION_CASE LRSA:
-        u64_registers[IP->r1] = u64_registers[IP->r2] >> *addr_register;
+        unsigned_long_long_rshift_to(u64_registers[IP->r1], u64_registers[IP->r1], DEREF_ADDR);
         INSTRUCTION_END;
     INSTRUCTION_CASE LLSA:
-        u64_registers[IP->r1] = u64_registers[IP->r2] << *addr_register;
+        unsigned_long_long_lshift_to(u64_registers[IP->r1], u64_registers[IP->r1], DEREF_ADDR);
         INSTRUCTION_END;
 
     INSTRUCTION_CASE ISMLD:
         u32_registers[IP->r1] = 0;
-        memcpy(&u32_registers[IP->r1], &vm->static_mem_p[*addr_register],
+        memcpy(&u32_registers[IP->r1], &vm->static_mem_p[DEREF_ADDR],
                IP->r2);
         INSTRUCTION_END;
     INSTRUCTION_CASE ISMST:
-        memcpy(&vm->static_mem_p[*addr_register], &u32_registers[IP->r1],
+        memcpy(&vm->static_mem_p[DEREF_ADDR], &u32_registers[IP->r1],
                IP->r2);
         INSTRUCTION_END;
 
     INSTRUCTION_CASE LSMLD:
-        u64_registers[IP->r1] = 0;
-        memcpy(&u64_registers[IP->r1], &vm->static_mem_p[*addr_register],
+        /*u64_registers[IP->r1] = 0;*/
+        unsigned_long_long_clear(u64_registers[IP->r1]);
+        memcpy(&u64_registers[IP->r1], &vm->static_mem_p[DEREF_ADDR],
                IP->r2);
         INSTRUCTION_END;
     INSTRUCTION_CASE LSMST:
-        memcpy(&vm->static_mem_p[*addr_register], &u64_registers[IP->r1],
+        memcpy(&vm->static_mem_p[DEREF_ADDR], &u64_registers[IP->r1],
                IP->r2);
         INSTRUCTION_END;
 
     INSTRUCTION_CASE FSMLD:
-        memcpy(&f32_registers[IP->r1], &vm->static_mem_p[*addr_register], 4);
+        memcpy(&f32_registers[IP->r1], &vm->static_mem_p[DEREF_ADDR], 4);
         INSTRUCTION_END;
     INSTRUCTION_CASE FSMST:
-        memcpy(&vm->static_mem_p[*addr_register], &f32_registers[IP->r1], 4);
+        memcpy(&vm->static_mem_p[DEREF_ADDR], &f32_registers[IP->r1], 4);
         INSTRUCTION_END;
 
     INSTRUCTION_CASE DSMLD:
-        memcpy(&f64_registers[IP->r1], &vm->static_mem_p[*addr_register], 8);
+        memcpy(&f64_registers[IP->r1], &vm->static_mem_p[DEREF_ADDR], 8);
         INSTRUCTION_END;
     INSTRUCTION_CASE DSMST:
-        memcpy(&vm->static_mem_p[*addr_register], &f64_registers[IP->r1], 8);
+        memcpy(&vm->static_mem_p[DEREF_ADDR], &f64_registers[IP->r1], 8);
         INSTRUCTION_END;
 
     INSTRUCTION_CASE POPI:
@@ -821,7 +825,7 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
                            NULL);
         INSTRUCTION_END;
     INSTRUCTION_CASE POPA:
-        stack_byte_pop_ptr(stack, *addr_register, NULL);
+        stack_byte_pop_ptr(stack, DEREF_ADDR, NULL);
         INSTRUCTION_END;
 
     INSTRUCTION_CASE IPUSH:
@@ -829,41 +833,42 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
         INSTRUCTION_END;
     INSTRUCTION_CASE ISTLD:
         u32_registers[IP->r1] = 0;
-        memcpy(&u32_registers[IP->r1], &stack->data[*addr_register], IP->r2);
+        memcpy(&u32_registers[IP->r1], &stack->data[DEREF_ADDR], IP->r2);
         INSTRUCTION_END;
     INSTRUCTION_CASE ISTST:
-        memcpy(&stack->data[*addr_register], &u32_registers[IP->r1], IP->r2);
+        memcpy(&stack->data[DEREF_ADDR], &u32_registers[IP->r1], IP->r2);
         INSTRUCTION_END;
 
     INSTRUCTION_CASE LPUSH:
         stack_byte_push_ptr(stack, (u8 *)&u64_registers[IP->r1], IP->r2);
         INSTRUCTION_END;
     INSTRUCTION_CASE LSTLD:
-        u64_registers[IP->r1] = 0;
-        memcpy(&u64_registers[IP->r1], &stack->data[*addr_register], IP->r2);
+        /*u64_registers[IP->r1] = 0;*/
+        unsigned_long_long_clear(u64_registers[IP->r1]);
+        memcpy(&u64_registers[IP->r1], &stack->data[DEREF_ADDR], IP->r2);
         INSTRUCTION_END;
     INSTRUCTION_CASE LSTST:
-        memcpy(&stack->data[*addr_register], &u64_registers[IP->r1], IP->r2);
+        memcpy(&stack->data[DEREF_ADDR], &u64_registers[IP->r1], IP->r2);
         INSTRUCTION_END;
 
     INSTRUCTION_CASE FPUSH:
         stack_byte_push_ptr(stack, (u8 *)&f32_registers[IP->r1], 4);
         INSTRUCTION_END;
     INSTRUCTION_CASE FSTLD:
-        memcpy(&f32_registers[IP->r1], &stack->data[*addr_register], 4);
+        memcpy(&f32_registers[IP->r1], &stack->data[DEREF_ADDR], 4);
         INSTRUCTION_END;
     INSTRUCTION_CASE FSTST:
-        memcpy(&stack->data[*addr_register], &f32_registers[IP->r1], 4);
+        memcpy(&stack->data[DEREF_ADDR], &f32_registers[IP->r1], 4);
         INSTRUCTION_END;
 
     INSTRUCTION_CASE DPUSH:
         stack_byte_push_ptr(stack, (u8 *)&f64_registers[IP->r1], 8);
         INSTRUCTION_END;
     INSTRUCTION_CASE DSTLD:
-        memcpy(&f64_registers[IP->r1], &stack->data[*addr_register], 8);
+        memcpy(&f64_registers[IP->r1], &stack->data[DEREF_ADDR], 8);
         INSTRUCTION_END;
     INSTRUCTION_CASE DSTST:
-        memcpy(&stack->data[*addr_register], &f64_registers[IP->r1], 8);
+        memcpy(&stack->data[DEREF_ADDR], &f64_registers[IP->r1], 8);
         INSTRUCTION_END;
 
         /*
@@ -905,10 +910,10 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
         INSTRUCTION_END;
 
     INSTRUCTION_CASE LADD:
-        u64_registers[IP->r1] = u64_registers[IP->r2] + u64_registers[IP->r3];
+        unsigned_long_long_add_to(u64_registers[IP->r1], u64_registers[IP->r2], u64_registers[IP->r3]);
         INSTRUCTION_END;
     INSTRUCTION_CASE LSUB:
-        u64_registers[IP->r1] = u64_registers[IP->r2] - u64_registers[IP->r3];
+        unsigned_long_long_sub_to(u64_registers[IP->r1], u64_registers[IP->r2], u64_registers[IP->r3]);
         INSTRUCTION_END;
     INSTRUCTION_CASE LMULT:
         u64_registers[IP->r1] = u64_registers[IP->r2] * u64_registers[IP->r3];
@@ -920,13 +925,15 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
         u64_registers[IP->r1] = u64_registers[IP->r2] % u64_registers[IP->r3];
         INSTRUCTION_END;
     INSTRUCTION_CASE LINC:
-        ++u64_registers[IP->r1];
+        /*++u64_registers[IP->r1];*/
+        unsigned_long_long_inc(u64_registers[IP->r1]);
         INSTRUCTION_END;
     INSTRUCTION_CASE LDEC:
-        --u64_registers[IP->r1];
+        /*--u64_registers[IP->r1];*/
+        unsigned_long_long_dec(u64_registers[IP->r1]);
         INSTRUCTION_END;
     INSTRUCTION_CASE LNEG:
-        u64_registers[IP->r1] = -u64_registers[IP->r2];
+        unsigned_long_long_neg_to(u64_registers[IP->r1], u64_registers[IP->r2]);
         INSTRUCTION_END;
 
     INSTRUCTION_CASE FADD:
@@ -974,7 +981,7 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
         INSTRUCTION_END;
 
     INSTRUCTION_CASE LTOI:
-        u32_registers[IP->r1] = (u32)u64_registers[IP->r2];
+        u32_registers[IP->r1] = (u32)unsigned_long_long_to_usize(u64_registers[IP->r2]);
         INSTRUCTION_END;
     INSTRUCTION_CASE FTOI:
         u32_registers[IP->r1] = (u32)f32_registers[IP->r2];
@@ -1056,42 +1063,42 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
         INSTRUCTION_END;
 
     INSTRUCTION_CASE LJEZ:
-        if (u64_registers[IP->r1] == 0) {
+        if (unsigned_long_long_is_zero(u64_registers[IP->r1])) {
             JUMP_TO_ADDR
         }
         INSTRUCTION_END;
     INSTRUCTION_CASE LJNZ:
-        if (u64_registers[IP->r1] != 0) {
+        if (unsigned_long_long_is_not_zero(u64_registers[IP->r1])) {
             JUMP_TO_ADDR
         }
         INSTRUCTION_END;
     INSTRUCTION_CASE LJEQ:
-        if (u64_registers[IP->r1] == u64_registers[IP->r2]) {
+        if (unsigned_long_long_is_equal(u64_registers[IP->r1], u64_registers[IP->r2])) {
             JUMP_TO_ADDR
         }
         INSTRUCTION_END;
     INSTRUCTION_CASE LJNQ:
-        if (u64_registers[IP->r1] != u64_registers[IP->r2]) {
+        if (unsigned_long_long_is_not_equal(u64_registers[IP->r1], u64_registers[IP->r2])) {
             JUMP_TO_ADDR
         }
         INSTRUCTION_END;
     INSTRUCTION_CASE LJML:
-        if (u64_registers[IP->r1] < u64_registers[IP->r2]) {
+        if (unsigned_long_long_is_less(u64_registers[IP->r1], u64_registers[IP->r2])) {
             JUMP_TO_ADDR
         }
         INSTRUCTION_END;
     INSTRUCTION_CASE LJEL:
-        if (u64_registers[IP->r1] <= u64_registers[IP->r2]) {
+        if (unsigned_long_long_is_less_or_equal(u64_registers[IP->r1], u64_registers[IP->r2])) {
             JUMP_TO_ADDR
         }
         INSTRUCTION_END;
     INSTRUCTION_CASE LJMG:
-        if (u64_registers[IP->r1] > u64_registers[IP->r2]) {
+        if (unsigned_long_long_is_greater(u64_registers[IP->r1], u64_registers[IP->r2])) {
             JUMP_TO_ADDR
         }
         INSTRUCTION_END;
     INSTRUCTION_CASE LJEG:
-        if (u64_registers[IP->r1] >= u64_registers[IP->r2]) {
+        if (unsigned_long_long_is_greater_or_equal(u64_registers[IP->r1], u64_registers[IP->r2])) {
             JUMP_TO_ADDR
         }
         INSTRUCTION_END;
@@ -1185,7 +1192,7 @@ _export u8 ncvm_execute_thread(ncvm_thread* thread) {
         INSTRUCTION_END;
 
     INSTRUCTION_CASE LIBCALL:
-        ((ncvm_lib_function)vm->lib_functions[*addr_register])(thread);
+        ((ncvm_lib_function)vm->lib_functions[DEREF_ADDR])(thread);
         INSTRUCTION_END;
         /* ++IP; */
         #ifndef __NCVM_USE_JUMPTABLE

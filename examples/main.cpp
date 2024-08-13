@@ -8,7 +8,7 @@ std::ifstream file("examples/asm/perf_test.ncvm", std::ios::binary);
 
 
 
-const unsigned char* get_next_n_bytes(unsigned long long n, void* data_p) {
+const unsigned char* get_next_n_bytes(unsigned long n, void* data_p) {
     unsigned char* data = new unsigned char[n];
     file.read((char*)data, n);
     return data;
