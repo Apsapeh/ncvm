@@ -26,18 +26,20 @@ int main() {
 
     std::ifstream file("examples/asm/perf_test.ncvm", std::ios::binary);
     int ret_code = 0;
-    ncvm vm = ncvm_loadBytecodeStream(
+    ncvm vm;
+    ncvm_loadBytecodeStream(
+        &vm,
         get_next_n_bytes,
         nullptr,
         ncvm_default_get_lib_function,
-        &lib_loader,
-        &ret_code
+        &lib_loader
     );
     file.close();
 
     ThreadSettings settings;
     DefaultThreadSettingsANSI(settings);
-    ncvm_thread thread = ncvm_create_thread(&vm, vm.inst_p, NULL, 0, settings, NULL);
+    ncvm_thread thread;
+    ncvm_create_thread(&thread, &vm, vm.inst_p, NULL, 0, settings);
     
 
     /*std::unordered_map<int, double> times;

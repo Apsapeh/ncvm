@@ -1,1 +1,1 @@
-int is_little_endian();
+int is_little_endian(void);

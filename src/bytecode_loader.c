@@ -5,12 +5,12 @@
 #include <string.h>
 
 typedef struct {
-    const unsigned char* data_p;
+    const uint8_t* data_p;
     unsigned long data_size;
 
 } dataStream; 
 
-const unsigned char* get_next_n_bytes(
+const uint8_t* get_next_n_bytes(
     unsigned long n, void* data_p
 ) {
     dataStream* stream = (dataStream*)data_p;
@@ -18,31 +18,32 @@ const unsigned char* get_next_n_bytes(
         return (void*)0;
     }
 
-    /*const unsigned char* data = stream->data_p;*/
+    /*const uint8_t* data = stream->data_p;*/
     stream->data_p += n;
     stream->data_size -= n;
     return stream->data_p;
 }
 
-_export ncvm ncvm_loadBytecodeData(
-    const unsigned char* data_p,
+_export uint8_t ncvm_loadBytecodeData(
+    ncvm*                vm,
+    const uint8_t* data_p,
     const unsigned long  data_size,
     ncvm_lib_function    (*get_lib_function)(const char* name, void* lib_data_p),
     void*                lib_data_p
 ) {
-    ncvm result;        /* Stupid ANSI C */
     dataStream stream;
+    uint8_t ret_code;
     stream.data_p = data_p;
     stream.data_size = data_size;
     
-    result =  ncvm_loadBytecodeStream(
+    ret_code =  ncvm_loadBytecodeStream(
+        vm,
         get_next_n_bytes,
         &stream,
         get_lib_function,
-        lib_data_p,
-        0
+        lib_data_p
     );
-    return result;
+    return ret_code;
 }
 
 
@@ -50,8 +51,7 @@ _export ncvm ncvm_loadBytecodeData(
 #define load_field(name, type, size) \
     tmp = get_next_n_bytes(size, data_p); \
     if (tmp == (void*)0) { \
-        *ret_code = 1; \
-        return result; \
+        return NCVM_BYTECODE_READ_ERROR; \
     } \
     name = *(type*)tmp;
 
@@ -60,38 +60,44 @@ _export ncvm ncvm_loadBytecodeData(
 #endif
 
 /* Load  */
-_export ncvm ncvm_loadBytecodeStream(
-    const unsigned char* (*get_next_n_bytes)(const unsigned long n, void* const data_p),
+_export uint8_t ncvm_loadBytecodeStream(
+    ncvm*             vm,
+    const uint8_t* (*get_next_n_bytes)(const unsigned long n, void* const data_p),
     void*             data_p,
     ncvm_lib_function (*get_lib_function)(const char* name, void* lib_data_p),
-    void*             lib_data_p,
-    int*              ret_code
+    void*             lib_data_p
 ) {
-    ncvm result;
-    const unsigned char* tmp;
-    unsigned int version;
-    unsigned char u32_count, u64_count, f32_count, f64_count;
+    const uint8_t* tmp;
+    uint32_t version;
+    uint8_t u32_count, u64_count, f32_count, f64_count;
     unsigned long stack_size, call_stack_size, lib_functions_count, lib_functions_size, static_mem_size, block_size;
     const char* fn_names;
-    const unsigned char* static_memory;
+    const uint8_t* static_memory;
     Instruction* instructions;
+    
+    /* Init result */
+    vm->inst_p = (Instruction*)0;
+    /*result.inst_count = 0;
+    result.static_mem_p = (void*)0;
+    result.static_mem_size = 0;
+    result.main_thread_settings.u32_reg_size = 0;
+    result.main_thread_settings.u64_reg_size = 0;
+    result.main_thread_settings.f32_reg_size = 0;
+    result.main_thread_settings.f64_reg_size = 0;*/
 
     if (!is_little_endian()) {
-        *ret_code = 1;
-        return result;
+        return NCVM_IS_BIG_ENDIAN;
     }
-
     
-    load_field(version, unsigned int, 4);
+    load_field(version, uint32_t, 4);
     if (version < NCVM_MIN_VERSION || version > NCVM_VERSION) {
-        *ret_code = 1;
-        return result;
+        return NCVM_INCOMPATIBLE_VERSION;
     }
 
-    load_field(u32_count, unsigned char, 1)
-    load_field(u64_count, unsigned char, 1)
-    load_field(f32_count, unsigned char, 1)
-    load_field(f64_count, unsigned char, 1)
+    load_field(u32_count, uint8_t, 1)
+    load_field(u64_count, uint8_t, 1)
+    load_field(f32_count, uint8_t, 1)
+    load_field(f64_count, uint8_t, 1)
     load_field(stack_size,          unsigned long, 8)
     load_field(call_stack_size,     unsigned long, 8)
     load_field(lib_functions_count, unsigned long, 8)
@@ -101,32 +107,17 @@ _export ncvm ncvm_loadBytecodeStream(
 
     fn_names = (const char*)get_next_n_bytes(lib_functions_size, data_p); \
     if (tmp == (void*)0) { \
-        *ret_code = 1; \
-        return result; \
+        return NCVM_BYTECODE_READ_ERROR; \
     } \
 
     static_memory = get_next_n_bytes(static_mem_size, data_p);
     if (static_memory == (void*)0) {
-        *ret_code = 1;
-        return result;
+        return NCVM_BYTECODE_READ_ERROR;
     }
 
     instructions = (Instruction*)get_next_n_bytes(block_size * 4, data_p);
     if (instructions == (void*)0) {
-        *ret_code = 1;
-        return result;
-    }
-
-    if (
-           (unsigned long)stack_size          != stack_size
-        || (unsigned long)call_stack_size     != call_stack_size
-        || (unsigned long)lib_functions_count != lib_functions_count
-        || (unsigned long)lib_functions_size  != lib_functions_size
-        || (unsigned long)static_mem_size     != static_mem_size
-        || (unsigned long)block_size          != block_size
-    ) {
-        *ret_code = 1;
-        return result;
+        return NCVM_BYTECODE_READ_ERROR;
     }
 
 #ifdef __NCVM_DEBUG
@@ -143,36 +134,34 @@ _export ncvm ncvm_loadBytecodeStream(
     printf("block_size: %llu\n", block_size);
 #endif
 
-    result.main_thread_settings.u32_reg_size = u32_count;
-    result.main_thread_settings.u64_reg_size = u64_count;
-    result.main_thread_settings.f32_reg_size = f32_count;
-    result.main_thread_settings.f64_reg_size = f64_count;
-    result.main_thread_settings.stack_size = stack_size;
-    result.main_thread_settings.call_stack_size = call_stack_size;
+    vm->main_thread_settings.u32_reg_size = u32_count;
+    vm->main_thread_settings.u64_reg_size = u64_count;
+    vm->main_thread_settings.f32_reg_size = f32_count;
+    vm->main_thread_settings.f64_reg_size = f64_count;
+    vm->main_thread_settings.stack_size = stack_size;
+    vm->main_thread_settings.call_stack_size = call_stack_size;
 
-    result.inst_count = block_size;
-    result.inst_p = malloc(block_size * 4);
-    memcpy(result.inst_p, instructions, (unsigned long)block_size * 4);
+    vm->inst_count = block_size;
+    vm->inst_p = malloc(block_size * 4);
+    memcpy(vm->inst_p, instructions, (unsigned long)block_size * 4);
 
-    result.static_mem_size = static_mem_size;
-    result.static_mem_p = malloc(static_mem_size);
-    memcpy(result.static_mem_p, (void*)static_memory, (unsigned long)static_mem_size);
+    vm->static_mem_size = static_mem_size;
+    vm->static_mem_p = malloc(static_mem_size);
+    memcpy(vm->static_mem_p, (void*)static_memory, (unsigned long)static_mem_size);
 
 
-    result.lib_functions = malloc(lib_functions_count * sizeof(void*));
+    vm->lib_functions = malloc(lib_functions_count * sizeof(void*));
     {
         unsigned long i_func = 0;
         for (i_func = 0; i_func < lib_functions_count; ++i_func) {
             ncvm_lib_function f = get_lib_function(fn_names, lib_data_p);
-            if (f == NULL) {
-                *ret_code = 1;
-                return result;
+            if (f == (ncvm_lib_function)0) {
+                return NCVM_LIB_FUNCTION_NOT_FOUND;
             }
     
-            result.lib_functions[i_func] = (void*)f;
+            vm->lib_functions[i_func] = f;
             fn_names += strlen(fn_names) + 1;
         }
     }
-    *ret_code = 0;
-    return result;
+    return NCVM_OK;
 }

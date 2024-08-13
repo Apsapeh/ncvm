@@ -1,6 +1,8 @@
 #ifndef __NCVM_GUARD_H
 #define __NCVM_GUARD_H
 
+#include <stdint.h>
+
 #if (defined(__GNUC__) /*&& defined(__clang__)*/)
     #define _packed __attribute__((__packed__))
     #define _export __attribute__((visibility("default")))
@@ -15,6 +17,21 @@
     #define _packed
     #define _export
 #endif
+
+#ifdef NCVM_XMAKE_IS_BIG_ENDIAN
+#error "Big Endian is not supported"
+#endif
+
+/*====> Errors <====*/
+#define NCVM_OK 0
+#define NCVM_U32_NOT_32_BIT 1
+#define NCVM_U64_NOT_64_BIT 2
+#define NCVM_IS_BIG_ENDIAN 3
+#define NCVM_STACK_ALLOC_ERROR 4
+#define NCVM_INCOMPATIBLE_VERSION 5
+#define NCVM_LIB_FUNCTION_NOT_FOUND 6
+#define NCVM_BYTECODE_READ_ERROR 7
+/*==================*/
 
 #define NCVM_MIN_VERSION 0
 #define NCVM_VERSION     0
@@ -219,101 +236,21 @@ enum _packed REGISTER {
 };
 
 
-/*typedef struct {
-    unsigned int _[2];
-} unsigned_long_long; */
-
-/*
-    if long 64 bit - long
-    if >C99 - long long
-    else struct {unsigned int _[2];}
-*/
-#define NCVM_PURE_C89
-#ifndef NCVM_PURE_C89
-    typedef unsigned long long unsigned_long_long;
-    #define unsigned_long_long_add(a, b) a + b
-    #define unsigned_long_long_sub(a, b) a - b
-    #define unsigned_long_long_mul(a, b) a * b
-    #define unsigned_long_long_div(a, b) a / b
-    #define unsigned_long_long_mod(a, b) a % b
-   
-    #define unsigned_long_long_add_set(a, b) a += b
-    #define unsigned_long_long_sub_set(a, b) a -= b
-    #define unsigned_long_long_mul_set(a, b) a *= b
-    #define unsigned_long_long_div_set(a, b) a /= b
-    #define unsigned_long_long_mod_set(a, b) a %= b    
-    
-#elif defined(__LP64__) || defined(_LP64) || defined(_WIN64) || defined(__x86_64__) || defined(__aarch64__) || defined(__amd64__) || defined(__arm64__) || defined(__ppc64__) || defined(__sparc64__) || defined(__mips64__) || defined(__s390x__) || defined(__ia64__) || defined(__alpha__) || defined(__powerpc64__) || defined(__mips64__) || defined(__mips64) || defined(__mips64__)
-    /*typedef unsigned long unsigned_long_long;
-    #define unsigned_long_long_add(a, b) a + b
-    #define unsigned_long_long_sub(a, b) a - b
-    #define unsigned_long_long_mul(a, b) a * b
-    #define unsigned_long_long_div(a, b) a / b
-    #define unsigned_long_long_mod(a, b) a % b 
-    
-    #define unsigned_long_long_add_set(a, b) a += b
-    #define unsigned_long_long_sub_set(a, b) a -= b
-    #define unsigned_long_long_mul_set(a, b) a *= b
-    #define unsigned_long_long_div_set(a, b) a /= b
-    #define unsigned_long_long_mod_set(a, b) a %= b
-#else*/
-    typedef struct {
-        unsigned int _[2];
-    } unsigned_long_long;
-    /*#define unsigned_long_long_add(a, b) #error "On 32-bit platforms, you can use only unsigned_long_long_add_set"
-    #define unsigned_long_long_sub(a, b) #error "On 32-bit platforms, you can use only unsigned_long_long_sub_set"
-    #define unsigned_long_long_mul(a, b) #error "On 32-bit platforms, you can use only unsigned_long_long_mul_set"
-    #define unsigned_long_long_div(a, b) #error "On 32-bit platforms, you can use only unsigned_long_long_div_set"
-    #define unsigned_long_long_mod(a, b) #error "On 32-bit platforms, you can use only unsigned_long_long_mod_set"
-    
-    #define unsigned_long_long_add_set(a, b) if (a._[0] + b._[0] < a._[0]) a._[1]++; a._[0] += b._[0]; a._[1] += b._[1]
-    #define unsigned_long_long_sub_set(a, b) if (a._[0] < b._[0]) a._[1]--; a._[0] -= b._[0]; a._[1] -= b._[1]
-    #define unsigned_long_long_mul_set(a, b) 
-    #define unsigned_long_long_div_set(a, b)
-    #define unsigned_long_long_mod_set(a, b) */
-    #define unsigned_long_long_to_usize(a) a._[0]
-    #define unsigned_long_long_clear(a) a._[0] = 0; a._[1] = 0
-    #define unsigned_long_long_inc(a) if (++a._[0] == 0) ++a._[1]
-    #define unsigned_long_long_dec(a) if (--a._[0] == 0xffffffff) --a._[1]
-    #define unsigned_long_long_is_zero(a) (a._[0] == 0 && a._[1] == 0)
-    #define unsigned_long_long_is_not_zero(a) (a._[0] != 0 || a._[1] != 0)
-    #define unsigned_long_long_is_equal(a, b) (a._[0] == b._[0] && a._[1] == b._[1])
-    #define unsigned_long_long_is_not_equal(a, b) (a._[0] != b._[0] || a._[1] != b._[1])
-    #define unsigned_long_long_is_less(a, b) (a._[1] < b._[1] || (a._[1] == b._[1] && a._[0] < b._[0]))
-    #define unsigned_long_long_is_greater(a, b) (a._[1] > b._[1] || (a._[1] == b._[1] && a._[0] > b._[0]))
-    #define unsigned_long_long_is_less_or_equal(a, b) (a._[1] < b._[1] || (a._[1] == b._[1] && a._[0] <= b._[0]))
-    #define unsigned_long_long_is_greater_or_equal(a, b) (a._[1] > b._[1] || (a._[1] == b._[1] && a._[0] >= b._[0]))
-
-    #define unsigned_long_long_add_to(to, a, b) to._[0] = a._[0] + b._[0]; to._[1] = a._[1] + b._[1]; if (a._[0] + b._[0] < a._[0]) to._[1]++
-    #define unsigned_long_long_sub_to(to, a, b) to._[0] = a._[0] - b._[0]; to._[1] = a._[1] - b._[1]; if (a._[0] < b._[0]) to._[1]--
-
-    #define unsigned_long_long_mod_to(to, a, b)
-
-    #define unsigned_long_long_neg_to(to, a) to._[0] = 0 - a._[0]; to._[1] = 0 - a._[1]
-    #define unsigned_long_long_lshift_to(to, a, on) if (on > 32) {to._[0] = a._[1] << (on - 32);} else {to._[0] = a._[0] << on | a._[1] >> (32 - on); to._[1] = a._[1] << on;}
-    #define unsigned_long_long_rshift_to(to, a, on) to._[0] = a._[0] >> on; to._[1] = a._[1] >> on
-    
-    #define __NCVM_SOFTWARE_U64_MATH
-    unsigned_long_long __software_u64_math_mul(unsigned_long_long a, unsigned_long_long b);
-    /*unsigned_long_long __software_math_unsigned_long_long_div(unsigned_long_long a, unsigned_long_long b);*/
-#endif
-
-
 typedef struct {
     enum OPCODE opcode;
-    unsigned char r1;
-    unsigned char r2;
-    unsigned char r3;
+    uint8_t r1;
+    uint8_t r2;
+    uint8_t r3;
 } Instruction;
 
 #define Instruction_Int(OP, R1, R2, R3) {OP, R1, R2, R3} 
 #define Instruction_Float(OP, R1, R2, R3) {OP, R1, R2, R3} 
 
 typedef struct {
-    unsigned char u32_reg_size;
-    unsigned char u64_reg_size;
-    unsigned char f32_reg_size;
-    unsigned char f64_reg_size;
+    uint8_t u32_reg_size;
+    uint8_t u64_reg_size;
+    uint8_t f32_reg_size;
+    uint8_t f64_reg_size;
     unsigned long stack_size;   /* In bytes */
     unsigned long call_stack_size; /* In long */
 } ThreadSettings;
@@ -334,24 +271,28 @@ typedef struct {
     settings.call_stack_size=1024*128;
 
 typedef struct {
-    Instruction*   inst_p;
-    unsigned long  inst_count;
-    unsigned char* static_mem_p;
-    unsigned long  static_mem_size; /* Size in bytes */
-    ThreadSettings main_thread_settings;
-    void**         lib_functions;
-} ncvm;
-
-typedef struct {
-    ncvm* vm;
+    void* vm;   
     const Instruction* current_instr_p;
     void* stack_p;
     void* call_stack_p;
-    unsigned int*       u32_registers;
-    unsigned_long_long* u64_registers;
+    uint32_t*       u32_registers;
+    uint64_t* u64_registers;
     float*              f32_registers;
     double*             f64_registers;
 } ncvm_thread;
+
+typedef void (*ncvm_lib_function)(ncvm_thread* thread);
+
+typedef struct {
+    Instruction*   inst_p;
+    unsigned long  inst_count;
+    uint8_t* static_mem_p;
+    unsigned long  static_mem_size; /* Size in bytes */
+    ThreadSettings main_thread_settings;
+    ncvm_lib_function*         lib_functions;
+} ncvm;
+
+
 
 
 typedef struct {
@@ -360,7 +301,6 @@ typedef struct {
 } ByteCodeBlocksInfo;
 
 
-typedef void (*ncvm_lib_function)(ncvm_thread* thread);
 
 #define NCVM_LIB_FUNCTION(name) void name(ncvm_thread* thread)
 
@@ -377,9 +317,10 @@ extern "C" {
     @param static_mem_p Static memory
     @return VM
  */
-_export ncvm ncvm_init(
+_export uint8_t ncvm_init(
+    ncvm*             vm,
     Instruction*      inst_p,  /*unsigned long inst_count,*/
-    unsigned char*    static_mem_p,/*, unsigned long static_mem_size*/
+    uint8_t*    static_mem_p,/*, unsigned long static_mem_size*/
     ncvm_lib_function (*get_lib_function)(const char* name, void* lib_data_p),
     void*             lib_data_p
 );
@@ -390,8 +331,9 @@ _export ncvm ncvm_init(
     @param data_size Bytecode data size
     @return VM
 */
-_export ncvm ncvm_loadBytecodeData(
-    const unsigned char* data_p,
+_export uint8_t ncvm_loadBytecodeData(
+    ncvm*                vm,
+    const uint8_t* data_p,
     const unsigned long  data_size,
     ncvm_lib_function    (*get_lib_function)(const char* name, void* lib_data_p),
     void*                lib_data_p
@@ -404,12 +346,12 @@ _export ncvm ncvm_loadBytecodeData(
     @param ret_code Return code
     @return VM
 */
-_export ncvm ncvm_loadBytecodeStream(
-    const unsigned char* (*get_next_n_bytes)(const unsigned long n, void* const data_p),
+_export uint8_t ncvm_loadBytecodeStream(
+    ncvm*             vm,
+    const uint8_t* (*get_next_n_bytes)(const unsigned long n, void* const data_p),
     void*             data_p,
     ncvm_lib_function (*get_lib_function)(const char* name, void* lib_data_p),
-    void*             lib_data_p,
-    int*              ret_code
+    void*             lib_data_p
 );
 
 /**
@@ -421,21 +363,21 @@ _export void ncvm_free(ncvm* vm);
 /**
     @param vm VM
 */
-_export unsigned char ncvm_execute(ncvm* vm);
+_export uint8_t ncvm_execute(ncvm* vm);
 
-_export ncvm_thread ncvm_create_thread(
+_export uint8_t ncvm_create_thread(
+    ncvm_thread*       thread,
     ncvm*              vm,
     const Instruction* start_instr_p, 
-    unsigned char*     ext_stack_p,
+    uint8_t*     ext_stack_p,
     unsigned long      ext_stack_s,
-    ThreadSettings     settings,
-    int*               ret_code
+    ThreadSettings     settings
 );
 
 _export void ncvm_thread_free(ncvm_thread* thread);
-_export unsigned char ncvm_execute_thread_step(ncvm_thread* thread);
-_export unsigned char ncvm_execute_thread(ncvm_thread* thread);
-/*_export unsigned char ncvm_thread_free();*/
+_export uint8_t ncvm_execute_thread_step(ncvm_thread* thread);
+_export uint8_t ncvm_execute_thread(ncvm_thread* thread);
+/*_export uint8_t ncvm_thread_free();*/
 
 
 /* Default loaders */

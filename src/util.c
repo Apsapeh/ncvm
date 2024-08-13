@@ -1,8 +1,8 @@
 #include "util.h"
 
-int is_little_endian()
+int is_little_endian(void)
 {
-  unsigned int x = 1;
-  char *c = (char*) &x;
-  return (int)*c;
+    unsigned int x = 1;
+    char *c = (char*) &x;
+    return (int)*c;
 }

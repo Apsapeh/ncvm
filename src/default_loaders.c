@@ -8,6 +8,7 @@ _export ncvm_default_lib_loader ncvm_default_lib_loader_init(
     const char** lib_names,
     unsigned long lib_names_count
 ) {
+    ncvm_default_lib_loader loader;
     void** lib_handlers = (void**)malloc(lib_names_count * sizeof(void*));
 
     unsigned long i = 0;
@@ -19,10 +20,9 @@ _export ncvm_default_lib_loader ncvm_default_lib_loader_init(
         }
     }
     
-    return (ncvm_default_lib_loader){
-        lib_handlers,
-        lib_names_count
-    };
+    loader.lib_handlers = lib_handlers;
+    loader.lib_handlers_count = lib_names_count;
+    return loader;
 }
 
 
@@ -30,13 +30,14 @@ _export ncvm_lib_function ncvm_default_get_lib_function(
     const char* name,
     void* loader
 ) {
+    ncvm_lib_function func;
     unsigned long i = 0;
     for (i = 0; i < ((ncvm_default_lib_loader*)loader)->lib_handlers_count; ++i) {
         void* handle = ((ncvm_default_lib_loader*)loader)->lib_handlers[i];
         if (handle == (void*)0)
             continue;
 
-        ncvm_lib_function func = (ncvm_lib_function)dlsym(handle, name);
+        func = (ncvm_lib_function)dlsym(handle, name);
         if (func != (ncvm_lib_function)0)
             return func;
     }

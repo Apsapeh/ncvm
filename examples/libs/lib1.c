@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 _export NCVM_LIB_FUNCTION(println) {
-    printf("%s\n", thread->vm->static_mem_p + unsigned_long_long_to_usize(thread->u64_registers[1]));
+    printf("%s\n", ((ncvm*)thread->vm)->static_mem_p + thread->u64_registers[1]);
 }
 
 _export NCVM_LIB_FUNCTION(print_long) {
