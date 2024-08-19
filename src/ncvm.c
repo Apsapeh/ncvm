@@ -37,6 +37,11 @@ _export uint8_t ncvm_init(
 _export void ncvm_free(ncvm* vm) {
     free(vm->inst_p);
     free(vm->static_mem_p);
+    free(vm->lib_functions);
+    for (unsigned long i = 0; i < vm->pub_functions_count; i++) {
+        free(vm->pub_functions[i].name);
+    }
+    free(vm->pub_functions);
     /*vm = NULL;*/
 }
 
@@ -112,6 +117,16 @@ _export void ncvm_thread_free(ncvm_thread* thread) {
     free(thread->f32_registers);
     free(thread->f64_registers);
     /*thread = NULL;*/
+}
+
+_export uint8_t ncvm_find_function_addr(ncvm* vm, const char* name, unsigned long* addr) {
+    for (unsigned long i = 0; i < vm->pub_functions_count; i++) {
+        if (strcmp(vm->pub_functions[i].name, name) == 0) {
+            *addr = vm->pub_functions[i].addr;
+            return NCVM_OK;
+        }
+    }
+    return NCVM_FUNCTION_NOT_FOUND;
 }
 
 #include <stdio.h>
@@ -622,7 +637,7 @@ _export  uint8_t ncvm_execute_thread_step(ncvm_thread* thread) {
 
 /*#if defined (__GNUC__) || defined (__clang__) || defined (NCVM_USE_JUMPTABLE)*/
 /*#define __NCVM_USE_JUMPTABLE*/
-#ifdef __NCVM_USE_JUMPTABLE
+#ifdef NCVM_USE_JUMPTABLE
 #define INSTRUCTION_END continue;
 #define INSTRUCTION_CASE 
 #define CYCLE_END break;
@@ -643,7 +658,7 @@ _export uint8_t ncvm_execute_thread(ncvm_thread* thread) {
     stack_usize* call_stack = (stack_usize*)thread->call_stack_p;
     ncvm *vm = (ncvm*)thread->vm;
 
-    #ifdef __NCVM_USE_JUMPTABLE
+    #ifdef NCVM_USE_JUMPTABLE
     static const void *const labels[124] = {
         &&NOP,    &&STOP,  &&RET,   &&IMOV,  &&LMOV,  &&FMOV,  &&DMOV,
         &&IRCLR,  &&LRCLR, &&FRCLR, &&DRCLR, &&ISR,   &&LSR,   &&IRSI,
@@ -672,7 +687,7 @@ _export uint8_t ncvm_execute_thread(ncvm_thread* thread) {
     while (1) {
         ++IP;
         /* printf("%d\n", IP->opcode); */
-        #ifdef __NCVM_USE_JUMPTABLE
+        #ifdef NCVM_USE_JUMPTABLE
             goto *labels[IP->opcode];
         #else
             switch (IP->opcode) {
@@ -815,15 +830,18 @@ _export uint8_t ncvm_execute_thread(ncvm_thread* thread) {
         INSTRUCTION_END;
 
     INSTRUCTION_CASE POPI:
-        stack_byte_pop_ptr(stack, IP->r1 + (IP->r2 * 256) + (IP->r3 * 65536),
-                           NULL);
+        if (stack_byte_pop_ptr(stack, IP->r1 + (IP->r2 * 256) + (IP->r3 * 65536),
+                           NULL) == 0)
+                           return NCVM_STACK_UNDERFLOW;
         INSTRUCTION_END;
     INSTRUCTION_CASE POPA:
-        stack_byte_pop_ptr(stack, *addr_register, NULL);
+        if (stack_byte_pop_ptr(stack, *addr_register, NULL) == 0)
+            return NCVM_STACK_UNDERFLOW;
         INSTRUCTION_END;
 
     INSTRUCTION_CASE IPUSH:
-        stack_byte_push_ptr(stack, (uint8_t *)&u32_registers[IP->r1], IP->r2);
+        if (stack_byte_push_ptr(stack, (uint8_t *)&u32_registers[IP->r1], IP->r2) == 0)
+            return NCVM_STACK_OVERFLOW;
         INSTRUCTION_END;
     INSTRUCTION_CASE ISTLD:
         u32_registers[IP->r1] = 0;
@@ -834,7 +852,8 @@ _export uint8_t ncvm_execute_thread(ncvm_thread* thread) {
         INSTRUCTION_END;
 
     INSTRUCTION_CASE LPUSH:
-        stack_byte_push_ptr(stack, (uint8_t *)&u64_registers[IP->r1], IP->r2);
+        if (stack_byte_push_ptr(stack, (uint8_t *)&u64_registers[IP->r1], IP->r2) == 0)
+            return NCVM_STACK_OVERFLOW;
         INSTRUCTION_END;
     INSTRUCTION_CASE LSTLD:
         u64_registers[IP->r1] = 0;
@@ -845,7 +864,8 @@ _export uint8_t ncvm_execute_thread(ncvm_thread* thread) {
         INSTRUCTION_END;
 
     INSTRUCTION_CASE FPUSH:
-        stack_byte_push_ptr(stack, (uint8_t *)&f32_registers[IP->r1], 4);
+        if (stack_byte_push_ptr(stack, (uint8_t *)&f32_registers[IP->r1], 4) == 0) 
+            return NCVM_STACK_OVERFLOW;
         INSTRUCTION_END;
     INSTRUCTION_CASE FSTLD:
         memcpy(&f32_registers[IP->r1], &stack->data[*addr_register], 4);
@@ -855,7 +875,8 @@ _export uint8_t ncvm_execute_thread(ncvm_thread* thread) {
         INSTRUCTION_END;
 
     INSTRUCTION_CASE DPUSH:
-        stack_byte_push_ptr(stack, (uint8_t *)&f64_registers[IP->r1], 8);
+        if (stack_byte_push_ptr(stack, (uint8_t *)&f64_registers[IP->r1], 8) == 0)
+            return NCVM_STACK_OVERFLOW;
         INSTRUCTION_END;
     INSTRUCTION_CASE DSTLD:
         memcpy(&f64_registers[IP->r1], &stack->data[*addr_register], 8);
@@ -1178,7 +1199,7 @@ _export uint8_t ncvm_execute_thread(ncvm_thread* thread) {
     INSTRUCTION_CASE CALL:
         if (stack_usize_push((stack_usize *)call_stack, IP - vm->inst_p + 1) ==
             0)
-            return 1;
+            return NCVM_CALL_STACK_OVERFLOW;
         JUMP_TO_ADDR
         INSTRUCTION_END;
 
@@ -1186,12 +1207,12 @@ _export uint8_t ncvm_execute_thread(ncvm_thread* thread) {
         ((ncvm_lib_function)vm->lib_functions[*addr_register])(thread);
         INSTRUCTION_END;
         /* ++IP; */
-        #ifndef __NCVM_USE_JUMPTABLE
+        #ifndef NCVM_USE_JUMPTABLE
         }
         #endif
     }
         
-    #ifndef __NCVM_USE_JUMPTABLE
+    #ifndef NCVM_USE_JUMPTABLE
     while_exit:;
     #endif
     thread->current_instr_p = IP;

@@ -1,10 +1,11 @@
+#include <cstdint>
 #include <iostream>
 #include <ncvm.h>
 
 #include <fstream>
 //#include <unordered_map>
 
-std::ifstream file("examples/asm/perf_test.ncvm", std::ios::binary);
+std::ifstream file("examples/asm/perf_test_new.ncvm", std::ios::binary);
 
 
 
@@ -24,10 +25,10 @@ int main() {
 
     ncvm_default_lib_loader lib_loader = ncvm_default_lib_loader_init(libs, 1);
 
-    std::ifstream file("examples/asm/perf_test.ncvm", std::ios::binary);
+    std::ifstream file("examples/asm/perf_test_new.ncvm", std::ios::binary);
     int ret_code = 0;
     ncvm vm;
-    ncvm_loadBytecodeStream(
+    uint8_t r = ncvm_loadBytecodeStream(
         &vm,
         get_next_n_bytes,
         nullptr,
@@ -36,10 +37,23 @@ int main() {
     );
     file.close();
 
+    if (r != 0) {
+        std::cout << "Error: "  << (int)r << std::endl;
+        return 1;
+    }
+
+    unsigned long addr = 0;
+    r = ncvm_find_function_addr(&vm, "main", &addr);
+
+    if (r != 0) {
+        std::cout << "Error: "  << (int)r << std::endl;
+        return 1;
+    }
+
     ThreadSettings settings;
     DefaultThreadSettingsANSI(settings);
     ncvm_thread thread;
-    ncvm_create_thread(&thread, &vm, vm.inst_p, NULL, 0, settings);
+    ncvm_create_thread(&thread, &vm, vm.inst_p+addr, NULL, 0, settings);
     
 
     /*std::unordered_map<int, double> times;

@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <ncvm.h>
 #include "util.h"
 
@@ -53,7 +54,7 @@ _export uint8_t ncvm_loadBytecodeData(
     if (tmp == (void*)0) { \
         return NCVM_BYTECODE_READ_ERROR; \
     } \
-    name = *(type*)tmp;
+    type name = *(type*)tmp;
 
 #ifdef __NCVM_DEBUG
 #include <stdio.h>
@@ -68,12 +69,6 @@ _export uint8_t ncvm_loadBytecodeStream(
     void*             lib_data_p
 ) {
     const uint8_t* tmp;
-    uint32_t version;
-    uint8_t u32_count, u64_count, f32_count, f64_count;
-    unsigned long stack_size, call_stack_size, lib_functions_count, lib_functions_size, static_mem_size, block_size;
-    const char* fn_names;
-    const uint8_t* static_memory;
-    Instruction* instructions;
     
     /* Init result */
     vm->inst_p = (Instruction*)0;
@@ -100,22 +95,40 @@ _export uint8_t ncvm_loadBytecodeStream(
     load_field(f64_count, uint8_t, 1)
     load_field(stack_size,          unsigned long, 8)
     load_field(call_stack_size,     unsigned long, 8)
+    load_field(pub_functions_count, unsigned long, 8)
     load_field(lib_functions_count, unsigned long, 8)
     load_field(lib_functions_size,  unsigned long, 8)
     load_field(static_mem_size,     unsigned long, 8)
     load_field(block_size,          unsigned long, 8)
 
-    fn_names = (const char*)get_next_n_bytes(lib_functions_size, data_p); \
+    ncvm_pub_function* pub_functions = malloc(pub_functions_count * sizeof(ncvm_pub_function));
+    for (unsigned long i = 0; i < pub_functions_count; i++) {
+        load_field(size, uint8_t, 1);
+        const char* name_ptr = (const char*)get_next_n_bytes(size, data_p);
+        if (name_ptr == (const char*)0) {
+            return NCVM_BYTECODE_READ_ERROR;
+        }
+        char* name = (char*)malloc(size);
+        if (name == (const char*)0) {
+            return NCVM_STACK_ALLOC_ERROR;
+        }
+        memcpy(name, name_ptr, size);
+        load_field(addr, unsigned long, 8);
+        pub_functions[i].name = name;
+        pub_functions[i].addr = addr;
+    }
+
+    const char* fn_names = (const char*)get_next_n_bytes(lib_functions_size, data_p); \
     if (tmp == (void*)0) { \
         return NCVM_BYTECODE_READ_ERROR; \
     } \
 
-    static_memory = get_next_n_bytes(static_mem_size, data_p);
+    const uint8_t* static_memory = get_next_n_bytes(static_mem_size, data_p);
     if (static_memory == (void*)0) {
         return NCVM_BYTECODE_READ_ERROR;
     }
 
-    instructions = (Instruction*)get_next_n_bytes(block_size * 4, data_p);
+    Instruction* instructions = (Instruction*)get_next_n_bytes(block_size * 4, data_p);
     if (instructions == (void*)0) {
         return NCVM_BYTECODE_READ_ERROR;
     }
@@ -140,6 +153,9 @@ _export uint8_t ncvm_loadBytecodeStream(
     vm->main_thread_settings.f64_reg_size = f64_count;
     vm->main_thread_settings.stack_size = stack_size;
     vm->main_thread_settings.call_stack_size = call_stack_size;
+
+    vm->pub_functions = pub_functions;
+    vm->pub_functions_count = pub_functions_count;
 
     vm->inst_count = block_size;
     vm->inst_p = malloc(block_size * 4);

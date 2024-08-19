@@ -31,10 +31,14 @@
 #define NCVM_INCOMPATIBLE_VERSION 5
 #define NCVM_LIB_FUNCTION_NOT_FOUND 6
 #define NCVM_BYTECODE_READ_ERROR 7
+#define NCVM_FUNCTION_NOT_FOUND 8
+#define NCVM_STACK_OVERFLOW 9
+#define NCVM_STACK_UNDERFLOW 10
+#define NCVM_CALL_STACK_OVERFLOW 11
 /*==================*/
 
-#define NCVM_MIN_VERSION 0
-#define NCVM_VERSION     0
+#define NCVM_MIN_VERSION 1
+#define NCVM_VERSION     1
 
 enum _packed OPCODE {
     /*==>  Other  <==*/
@@ -284,12 +288,19 @@ typedef struct {
 typedef void (*ncvm_lib_function)(ncvm_thread* thread);
 
 typedef struct {
+    char* name;
+    unsigned long addr;
+} ncvm_pub_function;
+
+typedef struct {
     Instruction*   inst_p;
     unsigned long  inst_count;
     uint8_t* static_mem_p;
     unsigned long  static_mem_size; /* Size in bytes */
     ThreadSettings main_thread_settings;
     ncvm_lib_function*         lib_functions;
+    ncvm_pub_function*         pub_functions;
+    unsigned long              pub_functions_count;
 } ncvm;
 
 
@@ -375,6 +386,7 @@ _export uint8_t ncvm_create_thread(
 );
 
 _export void ncvm_thread_free(ncvm_thread* thread);
+_export uint8_t ncvm_find_function_addr(ncvm* vm, const char* name, unsigned long* addr);
 _export uint8_t ncvm_execute_thread_step(ncvm_thread* thread);
 _export uint8_t ncvm_execute_thread(ncvm_thread* thread);
 /*_export uint8_t ncvm_thread_free();*/

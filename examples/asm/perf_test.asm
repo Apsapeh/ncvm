@@ -5,6 +5,9 @@
     4.0
 )
 
+stop:
+    STOP
+
 main:
     ISR R0 100000002   ; Количество итераций
     ISR R1 2           ; int i = 2; 
@@ -33,3 +36,8 @@ main:
     DMULT R1 R2 R1
     LIBCALL print_pi
     STOP                ; Остановка программы
+
+;post:
+;    DSMLD R1 #four_d
+;    LIBCALL print_pi
+;    RET
