@@ -22,7 +22,7 @@ const uint8_t* get_next_n_bytes(
     /*const uint8_t* data = stream->data_p;*/
     stream->data_p += n;
     stream->data_size -= n;
-    return stream->data_p;
+    return stream->data_p - n;
 }
 
 _export uint8_t ncvm_loadBytecodeData(
